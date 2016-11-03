@@ -12,6 +12,7 @@ interface Cache {
     compilerHost: TS.CompilerHost;
 }
 
+//todo: if tsconfig.json is editing do not throw error
 export function ts(options: TS.CompilerOptions = {}) {
     return plugin('ts', async plug => {
         //todo: use plug fs methods

@@ -52,7 +52,7 @@ export class Logger {
     }
     
     data(arg: string) {
-        this.log(ConsoleStyle.Dim(arg));
+        this.log(ConsoleStyle.FgWhite(arg));
     }
 }
 

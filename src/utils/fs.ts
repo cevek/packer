@@ -10,6 +10,11 @@ export type Glob = string | string[] | RegExp | RegExp[];
 
 export const writeFile: (filename: string, content: string | Buffer) => Promise<Buffer> = promisify(fs.writeFile, fs);
 export const readFile: (filename: string) => Promise<Buffer> = promisify(fs.readFile, fs);
+/*
+export async function readFile(filename: string) {
+    return fs.readFileSync(filename);
+}
+*/
 export const glob: (glob: Glob, options: GlobOptions) => Promise<string[]> = promisify(require("glob"));
 export const mkdirp: (dirname: string) => Promise<string[]> = promisify(require('mkdirp'));
 

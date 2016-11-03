@@ -1,10 +1,10 @@
-import * as path from 'path';
-import * as fs from 'fs';
-import {FileItem} from './utils/FileItem';
-import {glob, Glob, readFile, readFileSync, fileExists} from './utils/fs';
-import {logger} from './utils/logger';
+import * as path from "path";
+import * as fs from "fs";
+import {FileItem} from "./utils/FileItem";
+import {glob, Glob, readFile, readFileSync} from "./utils/fs";
+import {logger} from "./utils/logger";
+import {padRight, padLeft} from "./utils/common";
 import chokidar = require('chokidar');
-import {padRight, padLeft} from './utils/common';
 
 
 export interface PackerOptions {
@@ -14,12 +14,12 @@ export interface PackerOptions {
 
 export class Packer {
     protected plug: Plug;
-    
-    
+
+
     constructor(public options: PackerOptions, protected executor: (promise: Promise<Plug>)=>Promise<Plug>) {
-        
+
     }
-    
+
     async process() {
         this.plug = new Plug(false, this.options);
         this.plug.measureStart('overall');
@@ -28,7 +28,7 @@ export class Packer {
         const dur = this.plug.measureEnd('overall');
         logger.info(`Build done after ${dur | 0}ms`);
     }
-    
+
     private async watchRunner(callback: () => void) {
         this.plug.measureStart('overall');
         logger.info(`Incremental build started...`);
@@ -44,13 +44,15 @@ export class Packer {
         this.plug.watcher.once('change', (filename: string) => {
             this.plug.clear();
             this.plug.addFileFromFS(filename, true).then(() => {
+                // console.log('changed', filename);
+
                 setTimeout(() => {
                     this.watchRunner(callback);
                 }, 50);
             });
         });
     }
-    
+
     async watch(callback: ()=>void) {
         this.plug = new Plug(true, this.options);
         this.watchRunner(callback);
@@ -79,8 +81,8 @@ export class Plug {
     protected cacheData: any = Object.create(null);
     protected fileCache = new Map<string, FileItem>();
     protected dirCache = new Map<string, boolean>();
-    
-    
+
+
     getGeneratedFiles() {
         const files: FileItem[] = [];
         for (const [, file] of this.fileCache) {
@@ -90,7 +92,7 @@ export class Plug {
         }
         return files;
     }
-    
+
     constructor(public watchMode: boolean, options: PackerOptions) {
         const defaultOptions = {
             context: process.cwd(),
@@ -103,12 +105,12 @@ export class Plug {
             defaultOptions.dest = options.dest;
         }
         this.options = defaultOptions;
-        
+
         if (this.options.dest) {
             this.options.dest = this.normalizeName(this.options.dest);
         }
     }
-    
+
     addDistFile(fullname: string, content: string | Buffer, originals?: FileItem | FileItem[]) {
         const distFile = this.addFile(fullname, content, false);
         if (originals instanceof Array) {
@@ -118,7 +120,7 @@ export class Plug {
         }
         return distFile;
     }
-    
+
     protected addFile(fullname: string, content: string | Buffer, fromFileSystem: boolean): FileItem {
         let file: FileItem;
         if (fromFileSystem) {
@@ -128,6 +130,7 @@ export class Plug {
         }
         file = this.fileCache.get(fullname);
         if (file) {
+            file.fromFileSystem = fromFileSystem;
             if (content) {
                 file.setContent(content);
             }
@@ -135,7 +138,7 @@ export class Plug {
         }
         file = new FileItem(fullname, typeof content == 'string' ? new Buffer(content) : content, this.options.context, fromFileSystem);
         this.fileCache.set(file.fullName, file);
-        
+
         //todo: get name from original file
         /*
          const sourceMapFileName = file.fullName + '.map';
@@ -157,27 +160,27 @@ export class Plug {
          }*/
         return file;
     }
-    
-    
+
+
     normalizeName(filename: string) {
         filename = path.normalize(filename);
         filename = path.isAbsolute(filename) ? filename : path.normalize(this.options.context + '/' + filename);
         return filename;
     }
-    
+
     normalizeDestName(filename: string) {
         filename = path.normalize(filename);
         if (path.isAbsolute(filename)) {
             filename = path.relative(this.options.dest, filename);
             // console.log('rel', filename);
         }
-        
+
         //todo: check
         filename = filename.replace(/\.\.\//g, '');
         filename = path.normalize(this.options.dest + '/' + filename);
         return filename;
     }
-    
+
     removeFile(file: FileItem) {
         if (this.fileCache.get(file.fullName) == null) {
             throw new Error(`File ${file.fullName} not found`);
@@ -185,7 +188,7 @@ export class Plug {
         this.fileCache.set(file.fullName, null);
         return this;
     }
-    
+
     async isFileExists(filename: string) {
         filename = this.normalizeName(filename);
         const file = this.fileCache.get(filename);
@@ -201,7 +204,7 @@ export class Plug {
         }
         return true;
     }
-    
+
     isFileExistsSync(filename: string) {
         filename = this.normalizeName(filename);
         const file = this.fileCache.get(filename);
@@ -217,7 +220,7 @@ export class Plug {
         }
         return true;
     }
-    
+
     getFileFromStage(filename: string) {
         filename = this.normalizeDestName(filename);
         const file = this.fileCache.get(filename);
@@ -226,8 +229,8 @@ export class Plug {
         }
         return file;
     }
-    
-    
+
+
     addFileFromFSSync(filename: string, content?: string | Buffer) {
         filename = this.normalizeName(filename);
         let file = this.fileCache.get(filename);
@@ -236,16 +239,22 @@ export class Plug {
             file = this.addFile(filename, data, true);
             this.fileCache.set(filename, file);
         }
-        if (!file.isNodeModule) {
+        if (!file.isNodeModule && file.fromFileSystem) {
             this.watcher.add(filename);
+        }
+        if (!file.fromFileSystem) {
+            throw new Error('File ' + file.fullName + ' exists as generated file');
         }
         return file;
     }
-    
+
     async addFileFromFS(filename: string, force?: boolean): Promise<FileItem> {
         filename = this.normalizeName(filename);
-        let file = this.fileCache.get(filename)
+        let file = this.fileCache.get(filename);
         if (!file || force) {
+            if (filename.indexOf(this.options.dest) === 0) {
+                throw new Error('File ' + filename + ' not found');
+            }
             const data = await readFile(filename);
             file = this.addFile(filename, data, true);
             this.fileCache.set(filename, file);
@@ -255,7 +264,7 @@ export class Plug {
         }
         return file;
     }
-    
+
     async findFiles(filesGlob: Glob): Promise<FileItem[]> {
         if (!filesGlob) {
             return [];
@@ -270,13 +279,13 @@ export class Plug {
             files.push(file);
         }
         return files;
-        
+
         /*
          return new Promise((resolve, reject) => {
          if (!filesGlob) {
          return resolve([]);
          }
-         
+
          // this.watcher.add(filesGlob);
          glob(filesGlob, {
          cwd: this.options.context
@@ -289,7 +298,7 @@ export class Plug {
          });
          */
     }
-    
+
     dirExistsSync(filename: string) {
         filename = this.normalizeName(filename);
         let result = this.dirCache.get(filename);
@@ -307,8 +316,8 @@ export class Plug {
             return false;
         }
     }
-    
-    
+
+
     getCache(name: string): any {
         let cacheItem = this.cacheData[name];
         if (!cacheItem) {
@@ -316,7 +325,7 @@ export class Plug {
         }
         return cacheItem;
     }
-    
+
     clear() {
         this.watcher.close();
         this.watcher = chokidar.watch('');
@@ -328,7 +337,7 @@ export class Plug {
             }
         }
     }
-    
+
     measureStart(name: string) {
         let measure = this.measures[name];
         if (!measure) {
@@ -338,22 +347,22 @@ export class Plug {
         }
         measure.start = process.hrtime();
     }
-    
+
     measureEnd(name: string) {
         const m = this.measures[name];
         const diff = process.hrtime(m.start);
         m.dur += diff[0] * 1000 + diff[1] / 1e6;
         return m.dur;
     }
-    
+
     getAllMeasures() {
         return Object.keys(this.measures).map(key => this.measures[key]);
     }
-    
+
     getMeasure(name: string) {
         return this.measures[name];
     }
-    
+
     getFileFromCache(filename: string) {
         filename = this.normalizeName(filename);
         return this.fileCache.get(filename);

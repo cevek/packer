@@ -1,9 +1,9 @@
-import {SourceMap} from './sourcemaps';
-import * as path from 'path';
+import {SourceMap} from "./sourcemaps";
+import * as path from "path";
+import {mkdirp, writeFile} from "./fs";
+import {logger} from "./logger";
+import {formatBytes, padRight, padLeft} from "./common";
 import crypto = require('crypto');
-import {mkdirp, writeFile} from './fs';
-import {logger} from './logger';
-import {formatBytes, padRight, padLeft} from './common';
 
 let id = 1;
 

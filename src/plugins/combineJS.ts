@@ -1,6 +1,6 @@
 import {plugin, Plug} from '../packer';
 import {JSScanner} from '../utils/jsParser/jsScanner';
-import {FileItem} from '../utils/FileItem';
+import {FileItem, Import} from '../utils/FileItem';
 import {padRight} from '../utils/common';
 import {SourceMapWriter, SourceMap} from '../utils/sourcemaps';
 import * as path from 'path';
@@ -33,7 +33,8 @@ export function combineJS(outfile: string) {
             const file = plug.jsEntries[i];
             await jsScanner.scan(file, file.dirname);
         }
-        
+        // console.log(plug.getGeneratedFiles().filter(file => file.relativeName));
+
         const numberHash = new Map<FileItem, number>();
         let num = 0;
         
@@ -50,11 +51,10 @@ export function combineJS(outfile: string) {
             }
         }
         
-        function replaceImportsWithoutChangeLength(file: FileItem) {
-            let code = file.contentString;
-            if (file.imports) {
-                for (let i = 0; i < file.imports.length; i++) {
-                    const imprt = file.imports[i];
+        function replaceImportsWithoutChangeLength(imports: Import[], code: string) {
+            if (imports) {
+                for (let i = 0; i < imports.length; i++) {
+                    const imprt = imports[i];
                     const len = imprt.endPos - imprt.startPos;
                     // todo: check min len
                     code = code.substr(0, imprt.startPos) + padRight(numberHash.get(imprt.file), len) + code.substr(imprt.endPos);
@@ -80,7 +80,9 @@ export function combineJS(outfile: string) {
         
         smw.skipCode(superHeader);
         for (let [file, num] of numberHash) {
-            let content = file.contentString;
+            //todo:
+            let content = file.ext !== 'js' ? '/* no js module */' : file.contentString;
+
             const match = content.match(/^\/\/[#@]\s+sourceMappingURL=(.*?)$/m);
             if (match) {
                 //todo: if inlined base64?
@@ -89,7 +91,7 @@ export function combineJS(outfile: string) {
             }
             const header = `__packer(${num}, function(require, module, exports) \{\n`;
             const footer = '\n});\n';
-            bulk += header + replaceImportsWithoutChangeLength(file) + footer;
+            bulk += header + replaceImportsWithoutChangeLength(file.imports, content) + footer;
             smw.skipCode(header);
             
             if (file.sourcemapFile) {
