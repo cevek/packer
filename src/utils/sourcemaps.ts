@@ -90,8 +90,8 @@ export function encode(a: number, b: number, c: number, d: number) {
 
 // todo:deopts
 function encodeInteger(num: number) {
-    let result = '';
-    let clamped: number;
+    var result = '';
+    var clamped: number;
 
     if (num < 0) {
         num = ( -num << 1 ) | 1;
@@ -145,12 +145,15 @@ export class SourceMapWriter {
     private lineNum = 0;
     private prevLineNum = 0;
 
+    private lastSemicolon = true;
+
     private addSegment(s: string) {
         const length = this.mappings.length;
-        if (length > 0 && s.length && s[0] !== ';' && this.mappings[length - 1] !== ';') {
+        if (length > 0 && s.length > 0 && s[0] !== ';' && !this.lastSemicolon) {
             this.mappings += ',';
         }
         this.mappings += s;
+        this.lastSemicolon = s[s.length - 1] === ';';
     }
 
 
