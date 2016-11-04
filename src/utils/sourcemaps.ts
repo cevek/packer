@@ -128,7 +128,7 @@ export class SourceMap {
 
 
 export class SourceMapWriter {
-    private mappings: string[] = [];
+    private mappings: string = '';
     private sources: string[] = [];
     private sourcesContent: string[] = [];
 
@@ -145,27 +145,22 @@ export class SourceMapWriter {
     private lineNum = 0;
     private prevLineNum = 0;
 
-
-    writeSegment() {
-        let prependColon = false;
+    private addSegment(s: string) {
         const length = this.mappings.length;
-        if (length > 0) {
-            const lastSegment = this.mappings[length - 1];
-            if (lastSegment[lastSegment.length - 1] !== ';') {
-                prependColon = true;
-            }
+        if (length > 0 && s.length && s[0] !== ';' && this.mappings[length - 1] !== ';') {
+            this.mappings += ',';
         }
-        const segment = encode(
+        this.mappings += s;
+    }
+
+
+    private writeSegment() {
+        this.addSegment(encode(
             this.genColNum - this.prevGenColNum/*gen col*/,
             this.fileNum - this.prevFileNum/*source shift*/,
             this.lineNum - this.prevLineNum/* orig line shift*/,
             this.colNum - this.prevColNum/* orig col shift*/
-        );
-        if (prependColon) {
-            this.mappings.push(',' + segment);
-        } else {
-            this.mappings.push(segment);
-        }
+        ));
         this.prevGenColNum = this.genColNum;
         this.prevFileNum = this.fileNum;
         this.prevLineNum = this.lineNum;
@@ -173,7 +168,7 @@ export class SourceMapWriter {
     }
 
     writeNextLine() {
-        this.mappings.push(';');
+        this.addSegment(';');
         this.genLineNum++;
         this.genColNum = 0;
         this.prevGenColNum = 0;
@@ -226,9 +221,7 @@ export class SourceMapWriter {
         this.colNum = 0;
         this.lineNum = 0;
         this.writeSegment();
-        if (sourceMap.mappings.length) {
-            this.mappings.push(sourceMap.mappings);
-        }
+        this.addSegment(sourceMap.mappings);
         const diff = sourcemapDiffCalc(sourceMap.mappings);
 
         this.genLineNum += diff.genLine;
@@ -254,7 +247,7 @@ export class SourceMapWriter {
         const sm = new SourceMap();
         sm.sourcesContent = this.sourcesContent;
         sm.sources = this.sources;
-        sm.mappings = this.mappings.join(',');//.replace(/,?;,?/g, ';');
+        sm.mappings = this.mappings;//.replace(/,?;,?/g, ';');
         // console.log(sm.mappings);
         // console.log(this.fileNum);
         return sm;
