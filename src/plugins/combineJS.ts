@@ -33,11 +33,10 @@ export function combineJS(outfile: string) {
             const file = plug.jsEntries[i];
             await jsScanner.scan(file, file.dirname);
         }
-        // console.log(plug.getGeneratedFiles().filter(file => file.relativeName));
 
         const numberHash = new Map<FileItem, number>();
         let num = 0;
-        
+
         function numbers(file: FileItem) {
             if (numberHash.has(file)) {
                 return;
@@ -50,7 +49,7 @@ export function combineJS(outfile: string) {
                 }
             }
         }
-        
+
         function replaceImportsWithoutChangeLength(imports: Import[], code: string) {
             if (imports) {
                 for (var i = 0; i < imports.length; i++) {
@@ -74,7 +73,7 @@ export function combineJS(outfile: string) {
         let bulk = superHeader;
         outfile = plug.normalizeDestName(outfile);
         const dirname = path.dirname(outfile);
-        
+
         const smw = new SourceMapWriter();
         // files.sort((a, b) => a.numberName < b.numberName ? -1 : 1);
 
@@ -104,7 +103,7 @@ export function combineJS(outfile: string) {
             const footer = '\n});\n';
             bulk += header + replaceImportsWithoutChangeLength(file.imports, content) + footer;
             smw.skipCode(header);
-            
+
             if (file.sourcemapFile) {
                 const smFile = file.sourcemapFile;
                 const sm = JSON.parse(smFile.contentString) as SourceMap;
@@ -116,21 +115,22 @@ export function combineJS(outfile: string) {
                     const file = await plug.addFileFromFS(filename);
                     sm.sourcesContent.push(file.contentString);
                 }
-                
+
                 smw.putExistSourceMap(sm);
                 if (!smFile.fromFileSystem) {
                     //todo: maybe method?
                     smFile.updated = false;
                 }
             } else {
-                if (!file.sourcemap || file.updated) {
+                //todo: something wrong
+                /*if (!file.sourcemap || file.updated) {
                     const localSMW = new SourceMapWriter();
                     localSMW.putFile(content, file.originals.length ? file.originals[0].relativeName : file.relativeName);
                     file.sourcemap = localSMW.toSourceMap();
-                }
-                smw.putExistSourceMap(file.sourcemap);
+                }*/
+                smw.putFile(content, file.originals.length ? file.originals[0].relativeName : file.relativeName);
             }
-            
+
             smw.skipCode(footer);
             if (!file.fromFileSystem) {
                 //todo:
@@ -146,7 +146,7 @@ export function combineJS(outfile: string) {
         const sourceMap = smw.toSourceMap();
         const mapFile = plug.addDistFile(outfile + '.map', sourceMap.toString());
         bulk += '\n//# sourceMappingURL=' + mapFile.basename;
-        
+
         plug.addDistFile(outfile, bulk);
     });
 }
