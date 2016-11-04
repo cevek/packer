@@ -183,6 +183,7 @@ export class Plug {
 
     removeFile(file: FileItem) {
         if (this.fileCache.get(file.fullName) == null) {
+            this.printAllGeneratedFiles();
             throw new Error(`File ${file.fullName} not found`);
         }
         this.fileCache.set(file.fullName, null);
@@ -225,6 +226,7 @@ export class Plug {
         filename = this.normalizeDestName(filename);
         const file = this.fileCache.get(filename);
         if (!file) {
+            this.printAllGeneratedFiles();
             throw new Error(`File ${filename} doesn't exists on stage`);
         }
         return file;
@@ -243,6 +245,7 @@ export class Plug {
             this.watcher.add(filename);
         }
         if (!file.fromFileSystem) {
+            this.printAllGeneratedFiles();
             throw new Error('File ' + file.fullName + ' exists as generated file');
         }
         return file;
@@ -366,6 +369,11 @@ export class Plug {
     getFileFromCache(filename: string) {
         filename = this.normalizeName(filename);
         return this.fileCache.get(filename);
+    }
+
+    printAllGeneratedFiles() {
+        logger.data('Generated tree files');
+        this.getGeneratedFiles().forEach(file => logger.data('  ' + file.relativeName));
     }
 }
 

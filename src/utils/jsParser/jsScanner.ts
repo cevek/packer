@@ -16,8 +16,7 @@ async function resolve(module: string, options: ResolveOptions, plug: Plug): Pro
         return res;
 
     } catch (e) {
-        logger.data('Generated tree files');
-        plug.getGeneratedFiles().forEach(file => logger.data('  ' + file.relativeName));
+        plug.printAllGeneratedFiles();
         // todo: common errors: filename register
         throw e;
     }
