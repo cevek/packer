@@ -11,14 +11,14 @@ export function combineCSS(outfile: string) {
 
         const smw = new SourceMapWriter();
         // files.sort((a, b) => a.numberName < b.numberName ? -1 : 1);
-        const files = plug.getGeneratedFiles();
+        const files = plug.getGeneratedFiles().filter(file => file.ext === 'css' && file.fullName !== outfile);
+        const hasUpdated = files.some(file => file.updated);
+        if (!hasUpdated) {
+            return;
+        }
+
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
-            // console.log(file.relativeName);
-
-            if (file.ext !== 'css') {
-                continue;
-            }
             let content = file.contentString;
             const match = content.match(/^\/\/[#@]\s+sourceMappingURL=(.*?)$/m);
             if (match) {
