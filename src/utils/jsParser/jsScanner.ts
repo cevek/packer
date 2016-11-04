@@ -67,8 +67,8 @@ export class JSScanner {
                 // if file is not js we say yes, because we need extract it
                 //todo: check for folder
                 if (filename.match(/\./) && !filename.match(/\.js$/i) && !filename.match(/package\.json$/)) {
-                    const origFilename = this.plug.options.context + '/' + path.relative(this.plug.options.dest, filename);
-                    this.plug.addFileFromFS(origFilename).then(file => {
+                    // const origFilename = this.plug.options.context + '/' + path.relative(this.plug.options.dest, filename);
+                    this.plug.addFileFromFS(filename).then(file => {
                         const dist = this.plug.addDistFile(file.fullName, file.content, file);
                         callback(null, true);
                     });

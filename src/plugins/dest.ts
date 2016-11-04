@@ -1,15 +1,14 @@
-import {plugin, Plug} from '../packer';
-import {logger} from "../utils/logger";
+import {plugin} from "../packer";
 
 export function dest() {
     return plugin('dest', async plug => {
-
-        // plug.getGeneratedFiles().filter(f => !f.fromFileSystem).forEach(file => logger.data('  ' + file.relativeName));
-
-        const files = plug.getGeneratedFiles().filter(f => !f.fromFileSystem && f.updated);
+        const files = plug.getGeneratedFiles();
+        // plug.printAllGeneratedFiles();
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
-            await file.writeFileToFS();
+            if (!file.fromFileSystem && file.updated && file.fullName.indexOf(plug.options.dest) === 0) {
+                await file.writeFileToFS();
+            }
         }
     });
 }

@@ -115,7 +115,7 @@ export function ts(options: TS.CompilerOptions = {}) {
         //todo: use plug fs methods
         const cache = plug.getCache('ts') as Cache;
 
-        options.outDir = plug.options.dest;
+        options.outDir = void 0;//plug.options.dest;
         options.sourceMap = true;
         options.inlineSourceMap = false;
 

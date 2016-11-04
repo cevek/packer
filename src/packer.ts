@@ -30,32 +30,37 @@ export class Packer {
     }
 
     private async watchRunner(callback: () => void) {
-        this.plug.measureStart('overall');
-        logger.info(`Incremental build started...`);
-        await this.executor(Promise.resolve(this.plug));
-        const dur = this.plug.measureEnd('overall');
-        const allMeasures = this.plug.getAllMeasures();
-        for (let i = 0; i < allMeasures.length; i++) {
-            const m = allMeasures[i];
-            logger.info(`${padRight(m.name, 20)} ${padLeft(m.dur | 0, 6)}ms`);
+        try {
+            this.plug.measureStart('overall');
+            logger.info(`Incremental build started...`);
+            await this.executor(Promise.resolve(this.plug));
+            const dur = this.plug.measureEnd('overall');
+            const allMeasures = this.plug.getAllMeasures();
+            for (let i = 0; i < allMeasures.length; i++) {
+                const m = allMeasures[i];
+                logger.info(`${padRight(m.name, 20)} ${padLeft(m.dur | 0, 6)}ms`);
+            }
+            logger.info(`Incremental build done after ${dur | 0}ms\n`);
+            callback();
+        } catch (e) {
+            logger.error(e instanceof Error ? e.stack : e);
         }
-        logger.info(`Incremental build done after ${dur | 0}ms\n`);
-        callback();
         this.plug.watcher.once('change', (filename: string) => {
             this.plug.clear();
             this.plug.addFileFromFS(filename, true).then(() => {
-                // console.log('changed', filename);
-
+                logger.info('Changed ' + filename);
                 setTimeout(() => {
                     this.watchRunner(callback);
                 }, 50);
             });
         });
+
     }
 
     async watch(callback: ()=>void) {
         this.plug = new Plug(true, this.options);
-        this.watchRunner(callback);
+        await this.watchRunner(callback);
+        return this;
     }
 }
 
@@ -126,7 +131,8 @@ export class Plug {
         if (fromFileSystem) {
             fullname = this.normalizeName(fullname);
         } else {
-            fullname = this.normalizeDestName(fullname);
+            fullname = this.normalizeName(fullname);
+            // fullname = this.normalizeDestName(fullname);
         }
         file = this.fileCache.get(fullname);
         if (file) {
@@ -223,7 +229,8 @@ export class Plug {
     }
 
     getFileFromStage(filename: string) {
-        filename = this.normalizeDestName(filename);
+        filename = this.normalizeName(filename);
+        // filename = this.normalizeDestName(filename);
         const file = this.fileCache.get(filename);
         if (!file) {
             this.printAllGeneratedFiles();

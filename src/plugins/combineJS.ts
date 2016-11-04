@@ -28,11 +28,13 @@ var global = window;\n`;
 
 export function combineJS(outfile: string) {
     return plugin('combineJS', async plug => {
+        console.time('JSScanner');
         const jsScanner = new JSScanner(plug);
         for (var i = 0; i < plug.jsEntries.length; i++) {
             const file = plug.jsEntries[i];
             await jsScanner.scan(file, file.dirname);
         }
+        console.timeEnd('JSScanner');
 
         const numberHash = new Map<FileItem, number>();
         let num = 0;
