@@ -121,7 +121,7 @@ export class SourceMap {
     sourcesContent: string[] = [];
 
     toString() {
-        return `{"version":${this.version},"sourceRoot":"${this.sourceRoot}","sources":["${this.sources.join('","')}"],"mapping":"${this.mappings}","sourcesContent":["${this.sourcesContent.join('","')}"]}`;
+        return `{"version":${this.version},"sourceRoot":"${this.sourceRoot}","sources":["${this.sources.join('","')}"],"mappings":"${this.mappings}","sourcesContent":[${this.sourcesContent.map(c => JSON.stringify(c)).join(',')}]}`;
         // return JSON.stringify(this);
     }
 }
@@ -226,7 +226,9 @@ export class SourceMapWriter {
         this.colNum = 0;
         this.lineNum = 0;
         this.writeSegment();
-        this.mappings.push(sourceMap.mappings);
+        if (sourceMap.mappings.length) {
+            this.mappings.push(sourceMap.mappings);
+        }
         const diff = sourcemapDiffCalc(sourceMap.mappings);
 
         this.genLineNum += diff.genLine;
@@ -252,7 +254,7 @@ export class SourceMapWriter {
         const sm = new SourceMap();
         sm.sourcesContent = this.sourcesContent;
         sm.sources = this.sources;
-        sm.mappings = this.mappings.join('');//.replace(/(,;|;,)/g, ';');
+        sm.mappings = this.mappings.join(',');//.replace(/,?;,?/g, ';');
         // console.log(sm.mappings);
         // console.log(this.fileNum);
         return sm;
