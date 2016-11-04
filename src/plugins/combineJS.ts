@@ -29,7 +29,7 @@ var global = window;\n`;
 export function combineJS(outfile: string) {
     return plugin('combineJS', async plug => {
         const jsScanner = new JSScanner(plug);
-        for (let i = 0; i < plug.jsEntries.length; i++) {
+        for (var i = 0; i < plug.jsEntries.length; i++) {
             const file = plug.jsEntries[i];
             await jsScanner.scan(file, file.dirname);
         }
@@ -53,7 +53,7 @@ export function combineJS(outfile: string) {
         
         function replaceImportsWithoutChangeLength(imports: Import[], code: string) {
             if (imports) {
-                for (let i = 0; i < imports.length; i++) {
+                for (var i = 0; i < imports.length; i++) {
                     const imprt = imports[i];
                     const len = imprt.endPos - imprt.startPos;
                     // todo: check min len
@@ -62,24 +62,35 @@ export function combineJS(outfile: string) {
             }
             return code;
         }
-        
+
         let superFooter = '';
-        for (let i = 0; i < plug.jsEntries.length; i++) {
+        for (var i = 0; i < plug.jsEntries.length; i++) {
             const file = plug.jsEntries[i];
             numbers(file);
             superFooter = `\nrequire(${numberHash.get(file)});`;
         }
         superFooter += '\n})()';
-        
+
         let bulk = superHeader;
         outfile = plug.normalizeDestName(outfile);
         const dirname = path.dirname(outfile);
         
         const smw = new SourceMapWriter();
         // files.sort((a, b) => a.numberName < b.numberName ? -1 : 1);
-        
+
+        console.time('join');
         smw.skipCode(superHeader);
-        for (let [file, num] of numberHash) {
+        const files:FileItem[] = [];
+        for (var [file, fileNum] of numberHash){
+            files.push(file);
+        }
+
+        const hasUpdates = files.some(file => file.ext === 'js' && file.updated);
+        if (!hasUpdates) {
+            return;
+        }
+
+        for (var [file, fileNum] of numberHash) {
             //todo:
             let content = file.ext !== 'js' ? '/* no js module */' : file.contentString;
 
@@ -89,7 +100,7 @@ export function combineJS(outfile: string) {
                 file.sourcemapFile = await plug.addFileFromFS(file.dirname + '/' + match[1]);
                 content = content.replace(/^\/\/[#@]\s+sourceMappingURL=.*$/mg, '');
             }
-            const header = `__packer(${num}, function(require, module, exports) \{\n`;
+            const header = `__packer(${fileNum}, function(require, module, exports) \{\n`;
             const footer = '\n});\n';
             bulk += header + replaceImportsWithoutChangeLength(file.imports, content) + footer;
             smw.skipCode(header);
@@ -112,7 +123,12 @@ export function combineJS(outfile: string) {
                     smFile.updated = false;
                 }
             } else {
-                smw.putFile(content, file.originals.length ? file.originals[0].relativeName : file.relativeName);
+                if (!file.sourcemap || file.updated) {
+                    const localSMW = new SourceMapWriter();
+                    localSMW.putFile(content, file.originals.length ? file.originals[0].relativeName : file.relativeName);
+                    file.sourcemap = localSMW.toSourceMap();
+                }
+                smw.putExistSourceMap(file.sourcemap);
             }
             
             smw.skipCode(footer);
@@ -121,11 +137,12 @@ export function combineJS(outfile: string) {
                 file.updated = false;
             }
         }
-        
+
         bulk += superFooter;
         smw.skipCode(superFooter);
-        
-        
+
+        console.timeEnd('join');
+
         const sourceMap = smw.toSourceMap();
         const mapFile = plug.addDistFile(outfile + '.map', sourceMap.toString());
         bulk += '\n//# sourceMappingURL=' + mapFile.basename;
