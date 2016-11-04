@@ -26,6 +26,7 @@ export class FileItem {
     // numberName: number;
     relativeName: string;
     updated: boolean;
+    writedToFS = false;
     content: Buffer;
     private _contentString: string;
     get contentString() {
@@ -85,10 +86,13 @@ export class FileItem {
     }
     
     async writeFileToFS(): Promise<void> {
-        await mkdirp(path.dirname(this.fullName));
+        if (!this.writedToFS) {
+            await mkdirp(path.dirname(this.fullName));
+        }
         logger.success(padRight(`Emit file: ${this.relativeName}`, 40) + padLeft(formatBytes(this.content.length), 10));
         await writeFile(this.fullName, this.content);
         this.updated = false;
+        this.writedToFS = true;
     }
     
     toString() {

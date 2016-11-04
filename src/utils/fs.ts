@@ -8,7 +8,11 @@ export interface GlobOptions {
 export type Glob = string | string[] | RegExp | RegExp[];
 
 
-export const writeFile: (filename: string, content: string | Buffer) => Promise<Buffer> = promisify(fs.writeFile, fs);
+// export const writeFile: (filename: string, content: string | Buffer) => Promise<Buffer> = promisify(fs.writeFile, fs);
+export async function writeFile(filename: string, content: string | Buffer) {
+    return fs.writeFileSync(filename, content);
+}
+
 export const readFile: (filename: string) => Promise<Buffer> = promisify(fs.readFile, fs);
 /*
 export async function readFile(filename: string) {
