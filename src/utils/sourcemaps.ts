@@ -256,3 +256,35 @@ export class SourceMapWriter {
         return sm;
     }
 }
+
+
+export function extractSourceMapAndRemoveItFromFile(content: string) {
+    const commentRx = /^\s*\/(?:\/|\*)[@#]\s+sourceMappingURL=data:(?:application|text)\/json;(?:charset[:=]\S+;)?base64,(.*)$/mg;
+    //Example
+    //     //# sourceMappingURL=foo.js.map
+    //     /*# sourceMappingURL=foo.js.map */
+    const mapFileCommentRx = /(?:\/\/[@#][ \t]+sourceMappingURL=([^\s'"]+?)[ \t]*$)|(?:\/\*[@#][ \t]+sourceMappingURL=([^\*]+?)[ \t]*(?:\*\/){1}[ \t]*$)/mg;
+
+    let sourceFileName: string;
+    content = content.replace(mapFileCommentRx, (m, m1) => {
+        sourceFileName = m1;
+        return '';
+    });
+
+    let sourceFileContent: string;
+    if (!sourceFileName) {
+        content = content.replace(commentRx, (m, m1) => {
+            sourceFileContent = new Buffer(m1, 'base64').toString();
+            return '';
+        });
+    }
+    return {content, sourceFileContent, sourceFileName};
+}
+
+export function parseSourceMapJSON(filename: string, str: string): SourceMap {
+    try {
+        return JSON.parse(str);
+    } catch (e) {
+        throw new Error('SourceMap parse error in ' + filename);
+    }
+}

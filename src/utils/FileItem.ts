@@ -4,6 +4,7 @@ import {mkdirp, writeFile} from "./fs";
 import {logger} from "./logger";
 import {formatBytes, padRight, padLeft} from "./common";
 import crypto = require('crypto');
+import {Import} from "./SourceFile";
 
 let id = 1;
 
@@ -101,9 +102,3 @@ export class FileItem {
 }
 
 
-export class Import {
-    file: FileItem;
-    module: string;
-    startPos: number;
-    endPos: number;
-}

@@ -1,12 +1,13 @@
 import * as TS from "typescript";
 import * as path from "path";
 import {logger} from "../utils/logger";
-import {plugin, Plug} from "../packer";
-import {FileItem} from "../utils/FileItem";
+import {plugin} from "../packer";
+import {Plug} from "../utils/Plugin";
+import {SourceFile} from "../utils/SourceFile";
 
 interface Cache {
     program: TS.Program;
-    oldConfigFile: FileItem;
+    oldConfigFile: SourceFile;
     configParseResult: TS.ParsedCommandLine;
     compilerOptions: TS.CompilerOptions;
     compilerHost: TS.CompilerHost;
@@ -47,7 +48,7 @@ function reportDiagnosticWithColorAndContext(plug: Plug, diagnostic: TS.Diagnost
         const {line: firstLine, character: firstLineChar} = TS.getLineAndCharacterOfPosition(file, start);
         const {line: lastLine, character: lastLineChar} = TS.getLineAndCharacterOfPosition(file, start + length);
         const lastLineInFile = TS.getLineAndCharacterOfPosition(file, file.text.length).line;
-        const pfile = plug.getFileFromCache(file.fileName);
+        const pfile = plug.fs.getFromCache(file.fileName);
         const relativeFileName = pfile.fullName;
 
         const hasMoreThanFiveLines = (lastLine - firstLine) >= 4;
@@ -111,7 +112,7 @@ function reportDiagnosticWithColorAndContext(plug: Plug, diagnostic: TS.Diagnost
 
 //todo: if tsconfig.json is editing do not throw error
 export function ts(options: TS.CompilerOptions = {}) {
-    return plugin('ts', async plug => {
+    return plugin('ts', async (plug: Plug) => {
         //todo: use plug fs methods
         const cache = plug.getCache('ts') as Cache;
 
@@ -120,7 +121,7 @@ export function ts(options: TS.CompilerOptions = {}) {
         options.inlineSourceMap = false;
 
         const configFileName = (options && options.project) || TS.findConfigFile(plug.options.context, TS.sys.fileExists);
-        const configFile = await plug.addFileFromFS(configFileName);
+        const configFile = await plug.fs.read(configFileName);
 
         if (!cache.program || cache.oldConfigFile !== configFile || configFile.updated) {
             cache.oldConfigFile = configFile;
@@ -141,7 +142,7 @@ export function ts(options: TS.CompilerOptions = {}) {
             cache.compilerHost = TS.createCompilerHost(cache.compilerOptions);
             const hostGetSourceFile = cache.compilerHost.getSourceFile;
             cache.compilerHost.getSourceFile = function (fileName: string, languageVersion: TS.ScriptTarget, onError?: (message: string) => void) {
-                const file = plug.getFileFromCache(fileName);
+                const file = plug.fs.getFromCache(fileName);
                 // console.log('getSourceFile', fileName);
                 // Return existing SourceFile object if one is available
                 if (cache.program && file && !file.updated) {
@@ -156,17 +157,18 @@ export function ts(options: TS.CompilerOptions = {}) {
             };
 
             cache.compilerHost.fileExists = function (filename: string) {
-                return plug.isFileExistsSync(filename);
+                const file = plug.fs.tryFileSync(filename);
+                return file ? file.stat.isFile : false;
             };
 
             cache.compilerHost.directoryExists = function (filename: string) {
-                return plug.dirExistsSync(filename);
+                const file = plug.fs.tryFileSync(filename);
+                return file ? file.stat.isDirectory : false;
             };
 
             cache.compilerHost.writeFile = (file, data) => {
                 // console.log('put', file);
-
-                const dist = plug.addDistFile(file, data);
+                const dist = plug.fs.createGeneratedFile(file, data);
                 //console.log(dist.fullName);
 
             };
@@ -175,7 +177,7 @@ export function ts(options: TS.CompilerOptions = {}) {
         // First get and report any syntactic errors.
         let diagnostics = program.getSyntacticDiagnostics();
         program.getSourceFiles().forEach(file =>
-            plug.addFileFromFSSync(file.fileName));
+            plug.fs.read(file.fileName));
 
         // If we didn't have any syntactic errors, then also try getting the global and
         // semantic errors.
