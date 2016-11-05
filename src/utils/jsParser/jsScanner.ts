@@ -74,8 +74,9 @@ export class JSScanner {
 
     async scan(file: SourceFile) {
         if (!file.updated || this.scanned.has(file)) {
-            return null;
+            return;
         }
+
         this.scanned.set(file, true);
         let code = file.contentString;
         const imports = this.findImports(code);
@@ -90,8 +91,10 @@ export class JSScanner {
             }, this.plug);
 
             imprt.file = this.plug.fs.getFromCache(moduleResolvedUrl);
+            this.plug.fs.readContent(imprt.file);
             imprt.file.isGenerated = true;
             newImports.push(imprt);
+            // console.log('child scan', imprt.file.updated, imprt.file.extName, imprt.file.fullName);
             if (imprt.file.extName === 'js') {
                 await this.scan(imprt.file);
             }

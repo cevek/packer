@@ -7,7 +7,7 @@ export class SourceFile {
     content: Buffer;
     contentLoaded: boolean;
     stat: FileStat;
-    updated: boolean;
+    updated = true;
     extName: string;
     isGenerated = false;
     private _contentString: string;
@@ -49,7 +49,7 @@ export class SourceFile {
     setFullName(fullName: string) {
         this.fullName = fullName;
         this.relativeName = fullName; //todo:
-        this.extName = path.extname(fullName);
+        this.extName = path.extname(fullName).substr(1);
         this.dirName = path.dirname(fullName);
     }
 }

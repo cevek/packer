@@ -38,7 +38,7 @@ export class CachedFS {
     getGeneratedFiles() {
         const files: SourceFile[] = [];
         for (const [, file] of this.nodes) {
-            if (file && !file.isGenerated) {
+            if (file && file.isGenerated) {
                 files.push(file);
             }
         }
@@ -69,13 +69,10 @@ export class CachedFS {
         let file = this.getFromCache(filename);
         if (!file) {
             const stats = this.useSyncMethods ? fs.statSync(filename) : await statAsync(filename);
-            const file = new SourceFile(filename, FileStat.fromNodeStats(stats));
+            file = new SourceFile(filename, FileStat.fromNodeStats(stats));
             this.nodes.set(filename, file);
         }
-        if (!file.contentLoaded || force) {
-            const content = this.useSyncMethods ? fs.readFileSync(filename) : await readFileAsync(filename);
-            file.setContent(content);
-        }
+        await this.readContent(file, force);
         return file;
     }
 
@@ -91,6 +88,13 @@ export class CachedFS {
             file.setContent(content);
         }
         return file;
+    }
+
+    async readContent(file: SourceFile, force = false) {
+        if (!file.contentLoaded || force) {
+            const content = this.useSyncMethods ? fs.readFileSync(file.fullName) : await readFileAsync(file.fullName);
+            file.setContent(content);
+        }
     }
 
     async readStats(filename: string) {
@@ -184,8 +188,14 @@ export class CachedFS {
         const files: SourceFile[] = [];
         for (let i = 0; i < result.length; i++) {
             const filename = result[i];
-            files.push(await this.readStats(filename));
+            files.push(await this.readStats(this.normalizeName(filename)));
         }
         return files;
+    }
+
+    normalizeName(filename: string) {
+        filename = path.normalize(filename);
+        filename = path.isAbsolute(filename) ? filename : path.normalize(this.context + '/' + filename);
+        return filename;
     }
 }

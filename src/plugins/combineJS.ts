@@ -77,6 +77,7 @@ export function combineJS(outfile: string) {
         const hasUpdates = files.some(file => file.extName === 'js' && file.updated);
         if (hasUpdates) {
             await combiner({
+                type: 'js',
                 plug,
                 outfile,
                 files,

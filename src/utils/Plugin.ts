@@ -2,9 +2,9 @@ import * as path from "path";
 import {PackerOptions} from "../packer";
 import {CachedFS} from "./CachedFS";
 import {PerformanceMeasurer} from "./Performance";
+import {SourceFile} from "./SourceFile";
 
 import chokidar = require('chokidar');
-import {SourceFile} from "./SourceFile";
 export class Plug {
     options: PackerOptions;
     jsEntries: SourceFile[] = [];
@@ -23,7 +23,7 @@ export class Plug {
     // protected fileCache = new Map<string, FileItem>();
     // protected dirCache = new Map<string, boolean>();
 
-    fs = new CachedFS(this.options.context);
+    fs: CachedFS;
     performance: PerformanceMeasurer;
 
     constructor(public watchMode: boolean, options: PackerOptions) {
@@ -42,10 +42,8 @@ export class Plug {
         if (this.options.dest) {
             this.options.dest = this.normalizeName(this.options.dest);
         }
-    }
-
-    init() {
-
+        this.fs = new CachedFS(this.options.context);
+        this.performance = new PerformanceMeasurer();
     }
 
     normalizeName(filename: string) {
