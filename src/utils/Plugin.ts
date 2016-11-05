@@ -42,7 +42,7 @@ export class Plug {
         if (this.options.dest) {
             this.options.dest = this.normalizeName(this.options.dest);
         }
-        this.fs = new CachedFS(this.options.context);
+        this.fs = new CachedFS(this.options.context, this.watcher);
         this.performance = new PerformanceMeasurer();
     }
 

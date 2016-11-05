@@ -1,6 +1,6 @@
 import {promisify} from "./promisify";
 import * as fs from "fs";
-import {Stats} from "fs";
+import {Stats, FSWatcher} from "fs";
 import * as path from "path";
 import {logger} from "./logger";
 import {SourceFile, FileStat} from "./SourceFile";
@@ -24,9 +24,11 @@ export class CachedFS {
     private nodes = new Map<string, SourceFile>();
     useSyncMethods = true;
     private context: string;
+    private watcher: FSWatcher;
 
-    constructor(context: string) {
+    constructor(context: string, watcher: FSWatcher) {
         this.context = context;
+        this.watcher = watcher;
     }
 
     private createStat(filename: string, stats: Stats) {
@@ -54,11 +56,14 @@ export class CachedFS {
     }
 
     createGeneratedFile(filename: string, content: Buffer | string) {
-        if (this.getFromCache(filename)) {
-            throw new Error('File ' + filename + ' already exists in cache');
+        let file = this.getFromCache(filename);
+        if (file) {
+            file.setContent(content);
+            return file;
+            //throw new Error('File ' + filename + ' already exists in cache');
         }
         const stat = new FileStat(false, true);
-        const file = new SourceFile(filename, stat);
+        file = new SourceFile(filename, stat);
         file.setContent(content);
         file.isGenerated = true;
         this.nodes.set(filename, file);
@@ -92,6 +97,7 @@ export class CachedFS {
 
     async readContent(file: SourceFile, force = false) {
         if (!file.contentLoaded || force) {
+            this.watcher.add(file.fullName);
             const content = this.useSyncMethods ? fs.readFileSync(file.fullName) : await readFileAsync(file.fullName);
             file.setContent(content);
         }
