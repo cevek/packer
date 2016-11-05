@@ -41,7 +41,6 @@ export class JSScanner {
 
     private readFile = (filename: string, callback: (err: any, result: Buffer) => void): void => {
         this.plug.addFileFromFS(filename).then((file) => {
-            // console.log('realReadFile', filename);
             callback(null, file.content);
         }, (err) => {
             callback(err, null);
@@ -49,38 +48,12 @@ export class JSScanner {
     };
 
     private isFile = (filename: string, callback: (err: any, result: boolean) => void) => {
-        filename = this.plug.normalizeName(filename);
-
-        //todo: optimize?
-        if (filename.indexOf('/node_modules/') > -1 && filename.indexOf(this.plug.options.dest) === 0) {
-            callback(null, false);
-            return;
-        }
-        // const destRelFilename = path.relative(filename, this.plug.options.dest);
         this.plug.isFileExists(filename).then(result => {
-            // console.log(filename, result);
-            // callback(null, result);
-            if (result) {
-                callback(null, true);
-            } else {
-                // console.log(filename);
-                // if file is not js we say yes, because we need extract it
-                //todo: check for folder
-                if (filename.match(/\./) && !filename.match(/\.js$/i) && !filename.match(/package\.json$/)) {
-                    // const origFilename = this.plug.options.context + '/' + path.relative(this.plug.options.dest, filename);
-                    this.plug.addFileFromFS(filename).then(file => {
-                        const dist = this.plug.addDistFile(file.fullName, file.content, file);
-                        callback(null, true);
-                    });
-                } else {
-                    callback(null, false);
-                }
-            }
+            callback(null, result);
         });
     };
 
     private scanned: any = {};
-    private number = 0;
 
     private findImports(code: string) {
         const r = parseJS(code, this.isRequire);
@@ -129,78 +102,13 @@ export class JSScanner {
                 readFile: this.readFile,
                 isFile: this.isFile
             }, this.plug);
-            // console.log(moduleResolvedUrl);
-            // const distFile = this.plug.addDistFile(imFile.fullName, imFile.content);
-            /*
-             else {
-             const origFile = this.plug.options.context + '/' + path.relative(this.plug.options.dest, moduleResolvedUrl);
-             console.log('origFile', origFile, moduleResolvedUrl);
-             file = await this.plug.addFileFromFS(origFile);
-             }
-             */
 
-            // let file = this.plug.getFileFromStage(moduleResolvedUrl);
-
-            /*
-             if (!file) {
-             const origFile = this.plug.normalizeDestName(moduleResolvedUrl);
-             console.log('orig', moduleResolvedUrl, origFile);
-
-             const imFile = await this.plug.addFileFromFS(origFile);
-             file = this.plug.addDistFile(imFile.fullName, imFile.content, imFile);
-             }
-             */
-
-            // skip non js files
-            // if (!moduleResolvedUrl.match(/\.js$/)) {
-            //     const origFile = this.plug.options.context + '/' + path.relative(this.plug.options.dest, moduleResolvedUrl);
-            //     const file = await this.plug.addFileFromFS(origFile);
-            //     const distFile = this.plug.addDistFile(file.fullName, file.content, file);
-                // console.log('non js', file.fullName, distFile.fullName, distFile.fromFileSystem);
-                // console.log('skip', distFile.relativeName, distFile.fromFileSystem);
-                // continue;
-            // }
-
-            let file: FileItem;
-            if (moduleResolvedUrl.match(/\/node_modules\//)) {
-                file = await this.plug.addFileFromFS(moduleResolvedUrl);
-            } else {
-                file = this.plug.getFileFromStage(moduleResolvedUrl);
-            }
-
+            const file = this.plug.getFileFromCache(moduleResolvedUrl);
             const distFile = this.plug.addDistFile(file.fullName, file.content, file);
             imprt.file = distFile;
             newImports.push(imprt);
             await this.scan(distFile, file.dirname);
         }
         file.imports = newImports;
-        // this.plug.measureEnd('scan2');
-
-        /*return Promise
-         .all(
-         imports.map(imprt =>
-         resolve(imprt.module, {
-         basedir: file.dirname,
-         readFile: this.readFile,
-         isFile: this.isFile
-         }).then(resolved => {
-         imprt.file = this.plug.getFileByName(resolved);
-         return imprt;
-         }))
-         )
-         .then(() => {
-         file.imports = imports.map(imprt => imprt.file);
-         this.scanned[file.fullName] = true;
-         const promises = imports.map(imprt => () => this.scan(imprt.file));
-         return promises.reduce((p, fn) => p.then(fn), Promise.resolve()).then(() => {
-
-         imports.forEach(imprt => {
-         const len = imprt.endPos - imprt.startPos;
-         // todo: check min len
-         code = code.substr(0, imprt.startPos) + (pad + imprt.file.numberName).substr(-len) + code.substr(imprt.endPos);
-         });
-         file.setContent(code);
-         });
-         });*/
     }
 }

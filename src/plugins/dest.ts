@@ -1,5 +1,5 @@
-import {plugin} from "../packer";
-
+import {plugin, Plug} from "../packer";
+Plug;
 export function dest() {
     return plugin('dest', async plug => {
         const files = plug.getGeneratedFiles();

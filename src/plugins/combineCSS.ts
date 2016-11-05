@@ -1,6 +1,8 @@
-import {plugin} from "../packer";
+import {plugin, Plug} from "../packer";
 import {SourceMapWriter, SourceMap} from "../utils/sourcemaps";
 import * as path from "path";
+
+Plug; //don't remove, else Plug will be removed from import, and d.ts doesn't compile
 
 export function combineCSS(outfile: string) {
     return plugin('combineCSS', async plug => {
