@@ -45,16 +45,23 @@ export class Packer {
         } catch (e) {
             logger.error(e instanceof Error ? e.stack : e);
         }
-        this.plug.watcher.once('change', (filename: string) => {
-            this.plug.clear();
-            this.plug.addFileFromFS(filename, true).then(() => {
-                logger.info('Changed ' + filename);
-                setTimeout(() => {
-                    this.watchRunner(callback);
+        let timerRunned = false;
+        const changedFiles: string[] = [];
+        this.plug.watcher.on('change', (filename: string) => {
+            changedFiles.push(filename);
+            if (!timerRunned) {
+                timerRunned = true;
+                setTimeout(async() => {
+                    this.plug.clear();
+                    for (let i = 0; i < changedFiles.length; i++) {
+                        const filename = changedFiles[i];
+                        const file = await this.plug.addFileFromFS(filename, true);
+                        logger.info('Changed ' + file.relativeName);
+                    }
+                    await this.watchRunner(callback);
                 }, 50);
-            });
+            }
         });
-
     }
 
     async watch(callback: ()=>void) {
@@ -197,9 +204,11 @@ export class Plug {
     }
 
     async isFileExists(filename: string) {
+        this.measureStart('isFileExists');
         filename = this.normalizeName(filename);
         const file = this.fileCache.get(filename);
         if (file === null) {
+            this.measureEnd('isFileExists');
             return false;
         }
         // if read error then set null
@@ -207,8 +216,10 @@ export class Plug {
             await this.addFileFromFS(filename);
         } catch (e) {
             this.fileCache.set(filename, null);
+            this.measureEnd('isFileExists');
             return false;
         }
+        this.measureEnd('isFileExists');
         return true;
     }
 
