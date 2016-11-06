@@ -51,7 +51,7 @@ export class Packer {
                     for (let i = 0; i < changedFiles.length; i++) {
                         const filename = changedFiles[i];
                         const file = await this.plug.fs.read(filename, true);
-                        logger.info('Changed ' + file.relativeName);
+                        logger.info('Changed ' + this.plug.fs.relativeName(file));
                     }
                     await this.watchRunner(callback);
                 }, 50);

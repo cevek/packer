@@ -125,7 +125,7 @@ export function ts(options: TS.CompilerOptions = {}) {
 
         if (!cache.program || cache.oldConfigFile !== configFile || configFile.updated) {
             cache.oldConfigFile = configFile;
-            logger.info('Using TypeScript v' + TS.version + ' and ' + configFile.relativeName);
+            logger.info('Using TypeScript v' + TS.version + ' and ' + plug.fs.relativeName(configFile));
             const result = TS.parseConfigFileTextToJson(configFileName, configFile.contentString);
             const configObject = result.config;
             if (!configObject) {

@@ -9,7 +9,7 @@ async function resolve(module: string, options: ResolveOptions, plug: Plug): Pro
     try {
         return await _resolve(module, options);
     } catch (e) {
-        plug.fs.printAllGeneratedFiles();
+        plug.printAllGeneratedFiles();
         // todo: common errors: filename register
         throw e;
     }

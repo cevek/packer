@@ -1,14 +1,16 @@
 import * as path from "path";
+import * as fs from "fs";
 import {PackerOptions} from "../packer";
 import {CachedFS} from "./CachedFS";
 import {PerformanceMeasurer} from "./Performance";
 import {SourceFile} from "./SourceFile";
 
 import chokidar = require('chokidar');
+import {logger} from "./logger";
 export class Plug {
     options: PackerOptions;
     jsEntries: SourceFile[] = [];
-    watcher = chokidar.watch('');
+    watcher: fs.FSWatcher = chokidar.watch('');
     private cacheData = new Map<string, any>();
 
     getCache(name: string) {
@@ -63,6 +65,11 @@ export class Plug {
         filename = filename.replace(/\.\.\//g, '');
         filename = path.normalize(this.options.dest + '/' + filename);
         return filename;
+    }
+
+    printAllGeneratedFiles() {
+        logger.data('Generated tree files');
+        this.fs.getGeneratedFiles().forEach(file => logger.data('  ' + this.fs.relativeName(file)));
     }
 
     clear() {

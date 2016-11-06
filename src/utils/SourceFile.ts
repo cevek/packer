@@ -2,7 +2,6 @@ import * as path from "path";
 import {Stats} from "fs";
 export class SourceFile {
     fullName: string;
-    relativeName: string;
     dirName: string;
     content: Buffer;
     contentLoaded: boolean;
@@ -48,7 +47,6 @@ export class SourceFile {
 
     setFullName(fullName: string) {
         this.fullName = fullName;
-        this.relativeName = fullName; //todo:
         this.extName = path.extname(fullName).substr(1);
         this.dirName = path.dirname(fullName);
     }

@@ -3,7 +3,7 @@ import * as path from "path";
 import {Plug} from "./Plugin";
 import {SourceFile} from "./SourceFile";
 
-interface CombinerOptions {
+export interface CombinerOptions {
     type: 'js' | 'css',
     plug: Plug;
     files: SourceFile[];
@@ -33,7 +33,7 @@ export async function combiner(params: CombinerOptions) {
             sourceMapFile = await plug.fs.read(file.dirName + '/' + sourceFileName);
             sourceFileContent = sourceMapFile.contentString;
         }
-        const sourceMap = sourceFileContent ? parseSourceMapJSON(file.relativeName, sourceFileContent) : null;
+        const sourceMap = sourceFileContent ? parseSourceMapJSON(plug.fs.relativeName(file), sourceFileContent) : null;
         const header = getHeader ? getHeader(file) : '';
         const footer = getHeader ? getFooter(file) : '';
         bulk += header + content + footer;
@@ -54,7 +54,7 @@ export async function combiner(params: CombinerOptions) {
                 sourceMapFile.updated = false;
             }
         } else {
-            smw.putFile(content, file.relativeName);
+            smw.putFile(content, plug.fs.relativeName(file));
         }
 
         smw.skipCode(footer);

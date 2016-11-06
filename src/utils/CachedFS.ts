@@ -170,11 +170,6 @@ export class CachedFS {
         }
     }
 
-    printAllGeneratedFiles() {
-        logger.data('Generated tree files');
-        this.getGeneratedFiles().forEach(file => logger.data('  ' + file.relativeName));
-    }
-
     resetUpdatedFiles() {
         for (const [,file] of this.nodes) {
             if (file) {
@@ -203,5 +198,9 @@ export class CachedFS {
         filename = path.normalize(filename);
         filename = path.isAbsolute(filename) ? filename : path.normalize(this.context + '/' + filename);
         return filename;
+    }
+
+    relativeName(file: SourceFile) {
+        return path.relative(this.context, file.fullName);
     }
 }
