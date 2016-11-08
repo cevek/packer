@@ -23,6 +23,7 @@ export class CachedFS {
     // null - file doesn't exist
     private nodes = new Map<string, SourceFile>();
     useSyncMethods = true;
+    skipNodeModulesWatch = true;
     private context: string;
     private watcher: FSWatcher;
 
@@ -45,6 +46,10 @@ export class CachedFS {
             }
         }
         return files;
+    }
+
+    getAllCached() {
+        return [...this.nodes.values()].filter(file => !!file);
     }
 
     getFromCache(filename: string) {
@@ -97,7 +102,9 @@ export class CachedFS {
 
     async readContent(file: SourceFile, force = false) {
         if (!file.contentLoaded || force) {
-            this.watcher.add(file.fullName);
+            if (!this.skipNodeModulesWatch || !file.fullName.match(/\/node_modules\//)) {
+                this.watcher.add(file.fullName);
+            }
             const content = this.useSyncMethods ? fs.readFileSync(file.fullName) : await readFileAsync(file.fullName);
             file.setContent(content);
         }

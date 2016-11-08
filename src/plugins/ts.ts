@@ -112,16 +112,22 @@ function reportDiagnosticWithColorAndContext(plug: Plug, diagnostic: TS.Diagnost
 
 //todo: if tsconfig.json is editing do not throw error
 export function ts(options: TS.CompilerOptions = {}) {
-    return plugin('ts', async (plug: Plug) => {
+    return plugin('ts', async(plug: Plug) => {
         //todo: use plug fs methods
         const cache = plug.getCache('ts') as Cache;
 
         options.outDir = void 0;//plug.options.dest;
-        options.sourceMap = true;
+        options.sourceMap = plug.options.sourceMap;
         options.inlineSourceMap = false;
 
         const configFileName = (options && options.project) || TS.findConfigFile(plug.options.context, TS.sys.fileExists);
         const configFile = await plug.fs.read(configFileName);
+        const cachedTSFiles = plug.fs.getAllCached().filter(file => file.extName.match(/^[tj]sx?$/));
+
+        // skip if no tsx?|js files changed
+        if (cachedTSFiles.length && cachedTSFiles.every(file => !file.updated)) {
+            return;
+        }
 
         if (!cache.program || cache.oldConfigFile !== configFile || configFile.updated) {
             cache.oldConfigFile = configFile;

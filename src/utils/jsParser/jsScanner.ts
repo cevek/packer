@@ -92,11 +92,12 @@ export class JSScanner {
 
             imprt.file = this.plug.fs.getFromCache(moduleResolvedUrl);
             this.plug.fs.readContent(imprt.file);
-            imprt.file.isGenerated = true;
             newImports.push(imprt);
             // console.log('child scan', imprt.file.updated, imprt.file.extName, imprt.file.fullName);
             if (imprt.file.extName === 'js') {
                 await this.scan(imprt.file);
+            } else {
+                this.plug.stage.addFile(imprt.file);
             }
         }
         file.imports = newImports;

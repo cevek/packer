@@ -7,30 +7,22 @@ import {SourceFile} from "./SourceFile";
 
 import chokidar = require('chokidar');
 import {logger} from "./logger";
+import {Stage} from "./Stage";
 export class Plug {
     options: PackerOptions;
     jsEntries: SourceFile[] = [];
+    fs: CachedFS;
+    performance: PerformanceMeasurer;
+    stage: Stage;
+
     watcher: fs.FSWatcher = chokidar.watch('');
     private cacheData = new Map<string, any>();
 
-    getCache(name: string) {
-        let data = this.cacheData.get(name);
-        if (!data) {
-            data = Object.create(null);
-            this.cacheData.set(name, data);
-        }
-        return data;
-    }
-
-    // protected fileCache = new Map<string, FileItem>();
-    // protected dirCache = new Map<string, boolean>();
-
-    fs: CachedFS;
-    performance: PerformanceMeasurer;
 
     constructor(public watchMode: boolean, options: PackerOptions) {
         const defaultOptions = {
             context: process.cwd(),
+            sourceMap: true,
             dest: 'dist'
         };
         if (options.context) {
@@ -39,6 +31,9 @@ export class Plug {
         if (options.dest) {
             defaultOptions.dest = options.dest;
         }
+        if (typeof options.sourceMap === 'boolean') {
+            defaultOptions.sourceMap = options.sourceMap;
+        }
         this.options = defaultOptions;
 
         if (this.options.dest) {
@@ -46,6 +41,16 @@ export class Plug {
         }
         this.fs = new CachedFS(this.options.context, this.watcher);
         this.performance = new PerformanceMeasurer();
+        this.stage = new Stage();
+    }
+
+    getCache(name: string) {
+        let data = this.cacheData.get(name);
+        if (!data) {
+            data = Object.create(null);
+            this.cacheData.set(name, data);
+        }
+        return data;
     }
 
     normalizeName(filename: string) {
@@ -72,11 +77,17 @@ export class Plug {
         this.fs.getGeneratedFiles().forEach(file => logger.data('  ' + this.fs.relativeName(file)));
     }
 
+    printStageFiles() {
+        logger.data('Stage files');
+        this.stage.list().forEach(file => logger.data('  ' + this.fs.relativeName(file)));
+    }
+
     clear() {
-        this.watcher.close();
-        this.watcher = chokidar.watch('');
+        // this.watcher.close();
+        // this.watcher = chokidar.watch('');
         this.jsEntries = [];
         this.performance = new PerformanceMeasurer();
         this.fs.resetUpdatedFiles();
+        // this.stage = new Stage();
     }
 }

@@ -6,6 +6,7 @@ import chokidar = require('chokidar');
 export interface PackerOptions {
     context: string;
     dest: string;
+    sourceMap?: boolean;
 }
 
 export class Packer {
@@ -42,12 +43,13 @@ export class Packer {
         }
         let timerRunned = false;
         const changedFiles: string[] = [];
-        this.plug.watcher.on('change', (filename: string) => {
+        let listener = (filename: string) => {
             changedFiles.push(filename);
             if (!timerRunned) {
                 timerRunned = true;
                 setTimeout(async() => {
                     this.plug.clear();
+                    this.plug.watcher.removeListener('change', listener);
                     for (let i = 0; i < changedFiles.length; i++) {
                         const filename = changedFiles[i];
                         const file = await this.plug.fs.read(filename, true);
@@ -56,7 +58,8 @@ export class Packer {
                     await this.watchRunner(callback);
                 }, 50);
             }
-        });
+        };
+        this.plug.watcher.on('change', listener);
     }
 
     async watch(callback: ()=>void) {
