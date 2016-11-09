@@ -11,7 +11,7 @@ export interface CombinerOptions {
     superHeader: string;
     superFooter: string;
     getHeader?: (file: SourceFile) => string;
-    getContent: (file: SourceFile) => string;
+    getContent: (file: SourceFile) => Promise<string>;
     getFooter?: (file: SourceFile) => string;
 }
 
@@ -29,31 +29,31 @@ export async function combiner(params: CombinerOptions) {
 
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        await plug.fs.read(file.fullName);
         const header = getHeader ? getHeader(file) : '';
-        let content = getContent(file);
+        let content = await getContent(file);
         const footer = getHeader ? getFooter(file) : '';
 
         if (compileSourceMaps) {
-            let {content: fixedContent, sourceFileName, sourceFileContent} = extractSourceMapAndRemoveItFromFile(getContent(file));
+            let {content: fixedContent, sourceFileName, sourceFileContent} = extractSourceMapAndRemoveItFromFile(content);
             content = fixedContent;
             let sourceMapFile: SourceFile;
             if (sourceFileName) {
-                sourceMapFile = await plug.fs.read(file.dirName + '/' + sourceFileName);
-                sourceFileContent = sourceMapFile.contentString;
+                sourceMapFile = plug.fs.findOrCreate(file.dirName + '/' + sourceFileName);
+                sourceFileContent = await plug.fs.readContent(sourceMapFile);
             }
             const sourceMap = sourceFileContent ? parseSourceMapJSON(plug.fs.relativeName(file), sourceFileContent) : null;
             smw.skipCode(header);
 
             if (sourceMap) {
-                let sourceMapDir = (sourceMapFile ? sourceMapFile.dirName : file.dirName) + '/';
-                const realSources = sourceMap.sources.map(filename => path.normalize(sourceMapDir + sourceMap.sourceRoot + filename));
+                let sourceMapDir = (sourceMapFile ? sourceMapFile.dirName : file.dirName) + '/' + (sourceMap.sourceRoot || '');
+                const realSources = sourceMap.sources.map(filename => path.normalize(sourceMapDir + filename));
                 sourceMap.sources = realSources.map(filename => path.relative(dirname, filename));
                 sourceMap.sourcesContent = [];
                 for (let j = 0; j < realSources.length; j++) {
                     const filename = realSources[j];
-                    const file = await plug.fs.read(filename);
-                    sourceMap.sourcesContent.push(file.contentString);
+                    const file = plug.fs.findOrCreate(filename);
+                    const originContent = await plug.fs.readContent(file);
+                    sourceMap.sourcesContent.push(originContent);
                 }
                 smw.putExistSourceMap(sourceMap);
                 if (sourceMapFile && sourceMapFile.isGenerated) {

@@ -1,4 +1,4 @@
-import {logger} from "./utils/logger";
+import {logger, ConsoleStyle} from "./utils/logger";
 import {padRight, padLeft} from "./utils/common";
 import {Plug} from "./utils/Plugin";
 import chokidar = require('chokidar');
@@ -28,7 +28,7 @@ export class Packer {
     private async watchRunner(callback: () => void) {
         try {
             this.plug.performance.measureStart('overall');
-            logger.info(`Incremental build started...`);
+            logger.info(ConsoleStyle.clear() + `Incremental build started...`);
             await this.executor(Promise.resolve(this.plug));
             const dur = this.plug.performance.measureEnd('overall');
             const allMeasures = this.plug.performance.getAllMeasures();
@@ -52,7 +52,8 @@ export class Packer {
                     this.plug.watcher.removeListener('change', listener);
                     for (let i = 0; i < changedFiles.length; i++) {
                         const filename = changedFiles[i];
-                        const file = await this.plug.fs.read(filename, true);
+                        const file = this.plug.fs.findOrCreate(filename);
+                        await this.plug.fs.readContent(file, true);
                         logger.info('Changed ' + this.plug.fs.relativeName(file));
                     }
                     await this.watchRunner(callback);

@@ -16,7 +16,7 @@ export function combineCSS(outfile: string) {
                 files,
                 superHeader: '',
                 getFooter: file => '\n',
-                getContent: file => file.contentString,
+                getContent: async file => plug.fs.readContent(file),
                 superFooter: '',
             });
         }

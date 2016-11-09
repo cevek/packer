@@ -8,7 +8,8 @@ export function copy(globFiles: Glob) {
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             const destFileName = plug.normalizeDestName(file.fullName);
-            const destFile = plug.fs.createGeneratedFile(destFileName, file.fullName);
+            const content = await plug.fs.readContent(file);
+            const destFile = plug.fs.createGeneratedFile(destFileName, content);
             plug.stage.addFile(destFile);
         }
     });

@@ -12,7 +12,8 @@ export function dest() {
             const file = files[i];
             if (file.updated && file.fullName.indexOf(plug.options.dest) === 0) {
                 await plug.fs.write(file);
-                logger.success(padRight(`Emit file: ${plug.fs.relativeName(file)}`, 40) + padLeft(formatBytes(file.content.length), 10));
+                const content = await plug.fs.readContent(file);//todo: buffer length
+                logger.success(padRight(`Emit file: ${plug.fs.relativeName(file)}`, 40) + padLeft(formatBytes(content.length), 10));
             }
         }
     });

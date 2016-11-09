@@ -33,8 +33,9 @@ export class JSScanner {
     }
 
     private readFile = (filename: string, callback: (err: any, result: string) => void): void => {
-        this.plug.fs.read(filename).then((file) => {
-            callback(null, file.contentString);
+        const file = this.plug.fs.findOrCreate(filename);
+        this.plug.fs.readContent(file).then(content => {
+            callback(null, content);
         }, (err) => {
             callback(err, null);
         })
@@ -42,7 +43,7 @@ export class JSScanner {
 
     private isFile = (filename: string, callback: (err: any, result: boolean) => void) => {
         this.plug.fs.tryFile(filename).then(file => {
-            callback(null, file && file.stat.isFile);
+            callback(null, file && !file.isDir);
         });
     };
 
@@ -78,7 +79,7 @@ export class JSScanner {
         }
 
         this.scanned.set(file, true);
-        let code = file.contentString;
+        let code = await this.plug.fs.readContent(file);
         const imports = this.findImports(code);
 
         const newImports: Import[] = [];

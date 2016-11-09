@@ -84,7 +84,7 @@ export function combineJS(outfile: string) {
                 superHeader,
 
                 getHeader: file => `__packer(${numberHash.get(file)}, function(require, module, exports) \{\n`,
-                getContent: file => file.extName === 'js' ? replaceImportsWithoutChangeLength(file.imports, file.contentString) : '/* no js module */',
+                getContent: async file => file.extName === 'js' ? replaceImportsWithoutChangeLength(file.imports, await plug.fs.readContent(file)) : '/* no js module */',
                 getFooter: file => '\n});\n',
 
                 superFooter,

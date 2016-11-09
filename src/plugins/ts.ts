@@ -121,7 +121,7 @@ export function ts(options: TS.CompilerOptions = {}) {
         options.inlineSourceMap = false;
 
         const configFileName = (options && options.project) || TS.findConfigFile(plug.options.context, TS.sys.fileExists);
-        const configFile = await plug.fs.read(configFileName);
+        const configFile = plug.fs.findOrCreate(configFileName);
         const cachedTSFiles = plug.fs.getAllCached().filter(file => file.extName.match(/^[tj]sx?$/));
 
         // skip if no tsx?|js files changed
@@ -132,7 +132,8 @@ export function ts(options: TS.CompilerOptions = {}) {
         if (!cache.program || cache.oldConfigFile !== configFile || configFile.updated) {
             cache.oldConfigFile = configFile;
             logger.info('Using TypeScript v' + TS.version + ' and ' + plug.fs.relativeName(configFile));
-            const result = TS.parseConfigFileTextToJson(configFileName, configFile.contentString);
+            const content = plug.fs.readContentSync(configFile);
+            const result = TS.parseConfigFileTextToJson(configFileName, content);
             const configObject = result.config;
             if (!configObject) {
                 reportDiagnostics(plug, [result.error], /* compilerHost */ undefined);
@@ -164,12 +165,12 @@ export function ts(options: TS.CompilerOptions = {}) {
 
             cache.compilerHost.fileExists = function (filename: string) {
                 const file = plug.fs.tryFileSync(filename);
-                return file ? file.stat.isFile : false;
+                return file ? !file.isDir : false;
             };
 
             cache.compilerHost.directoryExists = function (filename: string) {
                 const file = plug.fs.tryFileSync(filename);
-                return file ? file.stat.isDirectory : false;
+                return file ? file.isDir : false;
             };
 
             cache.compilerHost.writeFile = (file, data) => {
@@ -183,7 +184,7 @@ export function ts(options: TS.CompilerOptions = {}) {
         // First get and report any syntactic errors.
         let diagnostics = program.getSyntacticDiagnostics();
         program.getSourceFiles().forEach(file =>
-            plug.fs.read(file.fileName));
+            plug.fs.watch(plug.fs.findOrCreate(file.fileName)));
 
         // If we didn't have any syntactic errors, then also try getting the global and
         // semantic errors.

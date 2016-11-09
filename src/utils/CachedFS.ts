@@ -2,8 +2,7 @@ import {promisify} from "./promisify";
 import * as fs from "fs";
 import {Stats, FSWatcher} from "fs";
 import * as path from "path";
-import {logger} from "./logger";
-import {SourceFile, FileStat} from "./SourceFile";
+import {SourceFile} from "./SourceFile";
 
 export interface GlobOptions {
     cwd?: string;
@@ -11,13 +10,12 @@ export interface GlobOptions {
 
 export type Glob = string | string[] | RegExp | RegExp[];
 
-const writeFileAsync = promisify<Buffer>(fs.writeFileSync, fs);
+const writeFileAsync = promisify<Buffer>(fs.writeFile, fs);
 const readFileAsync = promisify<Buffer>(fs.readFile, fs);
 const statAsync = promisify<Stats>(fs.stat, fs);
 
 const globAsync = promisify<string[]>(require("glob"));
 const mkdirpAsync = promisify(require('mkdirp'));
-
 
 export class CachedFS {
     // null - file doesn't exist
@@ -33,7 +31,7 @@ export class CachedFS {
     }
 
     private createStat(filename: string, stats: Stats) {
-        const file = new SourceFile(filename, FileStat.fromNodeStats(stats));
+        const file = new SourceFile(filename, stats.isDirectory());
         this.nodes.set(filename, file);
         return file;
     }
@@ -67,47 +65,38 @@ export class CachedFS {
             return file;
             //throw new Error('File ' + filename + ' already exists in cache');
         }
-        const stat = new FileStat(false, true);
-        file = new SourceFile(filename, stat);
+        file = new SourceFile(filename, false);
         file.setContent(content);
         file.isGenerated = true;
         this.nodes.set(filename, file);
         return file;
     }
 
-    async read(filename: string, force = false) {
+    findOrCreate(filename: string, isDir = false) {
         let file = this.getFromCache(filename);
         if (!file) {
-            const stats = this.useSyncMethods ? fs.statSync(filename) : await statAsync(filename);
-            file = new SourceFile(filename, FileStat.fromNodeStats(stats));
+            file = new SourceFile(filename, isDir);
             this.nodes.set(filename, file);
-        }
-        await this.readContent(file, force);
-        return file;
-    }
-
-    readSync(filename: string) {
-        let file = this.getFromCache(filename);
-        if (!file) {
-            const stats = fs.statSync(filename);
-            const file = new SourceFile(filename, FileStat.fromNodeStats(stats));
-            this.nodes.set(filename, file);
-        }
-        if (!file.contentLoaded) {
-            const content = fs.readFileSync(filename);
-            file.setContent(content);
         }
         return file;
     }
 
     async readContent(file: SourceFile, force = false) {
         if (!file.contentLoaded || force) {
-            if (!this.skipNodeModulesWatch || !file.fullName.match(/\/node_modules\//)) {
-                this.watcher.add(file.fullName);
-            }
+            this.watch(file);
             const content = this.useSyncMethods ? fs.readFileSync(file.fullName) : await readFileAsync(file.fullName);
             file.setContent(content);
         }
+        return file.getContentString();
+    }
+
+    readContentSync(file: SourceFile, force = false) {
+        if (!file.contentLoaded || force) {
+            this.watch(file);
+            const content = fs.readFileSync(file.fullName);
+            file.setContent(content);
+        }
+        return file.getContentString();
     }
 
     async readStats(filename: string) {
@@ -119,7 +108,7 @@ export class CachedFS {
         return this.getFromCache(filename) || this.createStat(filename, fs.statSync(filename));
     }
 
-    async tryFile(filename: string) {
+    async tryFile(filename: string): Promise<SourceFile> {
         try {
             return await this.readStats(filename);
         } catch (e) {
@@ -137,7 +126,6 @@ export class CachedFS {
         }
     }
 
-
     async rename(file: SourceFile, newFilename: string) {
         this.nodes.delete(file.fullName);
         this.nodes.set(newFilename, file);
@@ -146,7 +134,7 @@ export class CachedFS {
 
     async mkDir(dirname: string) {
         const existDir = await this.tryFile(dirname);
-        if (existDir && existDir.stat.isDirectory) {
+        if (existDir && existDir.isDir) {
             return;
         }
         await mkdirpAsync(dirname);
@@ -209,5 +197,11 @@ export class CachedFS {
 
     relativeName(file: SourceFile) {
         return path.relative(this.context, file.fullName);
+    }
+
+    watch(file: SourceFile) {
+        if (!this.skipNodeModulesWatch || !file.fullName.match(/\/node_modules\//)) {
+            this.watcher.add(file.fullName);
+        }
     }
 }

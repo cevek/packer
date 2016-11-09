@@ -5,24 +5,29 @@ export class SourceFile {
     dirName: string;
     content: Buffer;
     contentLoaded: boolean;
-    stat: FileStat;
     updated = true;
     extName: string;
     isGenerated = false;
     private _contentString: string;
     imports: Import[];
+    isDir: boolean; //todo:
 
-    get contentString() {
+    getContentString() {
         return this._contentString ? this._contentString : (this._contentString = this.content.toString());
+    }
+
+    getContentBuffer() {
+        return this.content;
     }
 
     getBasename(withoutExt = false) {
         return path.basename(this.fullName, withoutExt ? '.' + this.extName : '');
     }
 
-    constructor(fullName: string, stat: FileStat) {
+    constructor(fullName: string, isDir: boolean) {
         this.setFullName(fullName);
-        this.stat = stat;
+        // this.stat = stat;
+        this.isDir = isDir;
         this.content = null;
         this.contentLoaded = false;
     }
@@ -30,14 +35,14 @@ export class SourceFile {
     setContent(content: Buffer | string) {
         this.contentLoaded = !!content;
         if (typeof content === 'string') {
-            if (!this.content || this.contentString !== content) {
+            if (!this.content || this._contentString !== content) {
                 this.content = new Buffer(content);
                 this._contentString = content;
                 this.updated = true;
             }
         } else {
             const string = content.toString();
-            if (!this.content || this.contentString !== string) {
+            if (!this.content || this._contentString !== string) {
                 this.content = content;
                 this._contentString = string;
                 this.updated = true;
@@ -57,13 +62,4 @@ export class Import {
     module: string;
     startPos: number;
     endPos: number;
-}
-
-
-export class FileStat {
-    constructor(public isDirectory: boolean, public isFile: boolean) {}
-
-    static fromNodeStats(stats: Stats) {
-        return new FileStat(stats.isDirectory(), stats.isFile());
-    }
 }
