@@ -266,8 +266,8 @@ export function extractSourceMapAndRemoveItFromFile(content: string) {
     const mapFileCommentRx = /(?:\/\/[@#][ \t]+sourceMappingURL=([^\s'"]+?)[ \t]*$)|(?:\/\*[@#][ \t]+sourceMappingURL=([^\*]+?)[ \t]*(?:\*\/){1}[ \t]*$)/mg;
 
     let sourceFileName: string;
-    content = content.replace(mapFileCommentRx, (m, m1) => {
-        sourceFileName = m1;
+    content = content.replace(mapFileCommentRx, (m, m1, m2) => {
+        sourceFileName = m1 || m2;
         return '';
     });
 
