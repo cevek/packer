@@ -4,7 +4,8 @@ import {Glob} from "../utils/fs";
 import {plugin} from "../packer";
 import {Plug} from "../utils/Plugin";
 
-const sassRender: (options: SassOptions) => Promise<SassResult> = promisify(require('node-sass').render);
+const render: (options: SassOptions) => Promise<SassResult> = promisify(require('node-sass').render);
+// const sassRender: (options: SassOptions) => Promise<SassResult> = promisify(require('node-sass').render);
 export interface SassOptions {
     file?: string;
     data?: string;
@@ -26,24 +27,28 @@ export interface SassResult {
 }
 
 export function sass(globFiles: Glob, options: SassOptions = {}) {
-    return plugin('sass', async (plug: Plug) => {
+    return plugin('sass', async(plug: Plug) => {
         if (options.sourceMap == null) {
-            options.sourceMap = true;
+            options.sourceMap = plug.options.sourceMap;
         }
         const files = await plug.fs.findFiles(globFiles);
-        const updatedFiles = files.filter(file => file.updated);
+        files.forEach(file => plug.stage.addFile(file));
+
+        const updatedFiles = plug.stage.list().filter(file => file.updated && file.extName.match(/^s[ac]ss$/));
         for (let i = 0; i < updatedFiles.length; i++) {
             const file = updatedFiles[i];
-            const cssName = file.dirName + file.getBasename(true) + '.css';
+            const cssName = file.dirName + '/' + file.getBasename(true) + '.css';
 
             options.file = file.fullName;
-            options.outFile = cssName + '.map';
-            options.data = file.contentString;
-            const result = await sassRender(options);
-            plug.fs.createGeneratedFile(cssName, result.css);
+            options.outFile = cssName;
+            options.data = await plug.fs.readContent(file);
+            const result = await render(options);
+            const cssFile = plug.fs.createGeneratedFile(cssName, result.css);
+            plug.stage.addFile(cssFile);
             for (let j = 0; j < result.stats.includedFiles.length; j++) {
                 const filename = result.stats.includedFiles[j];
-                await plug.fs.read(filename);
+                const file = plug.fs.findOrCreate(filename);
+                plug.fs.watch(file);
             }
             if (result.map) {
                 plug.fs.createGeneratedFile(cssName + '.map', result.map);
