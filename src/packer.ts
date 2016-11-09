@@ -28,7 +28,8 @@ export class Packer {
     private async watchRunner(callback: () => void) {
         try {
             this.plug.performance.measureStart('overall');
-            logger.info(ConsoleStyle.clear() + `Incremental build started...`);
+            logger.clear();
+            logger.info(`Incremental build started...`);
             await this.executor(Promise.resolve(this.plug));
             const dur = this.plug.performance.measureEnd('overall');
             const allMeasures = this.plug.performance.getAllMeasures();
