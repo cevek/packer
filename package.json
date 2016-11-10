@@ -1,13 +1,13 @@
 {
   "name": "webbuilder",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "dist/packer.js",
   "typings": "dist/packer.d.ts",
   "keywords": [],
   "author": "cevek",
   "license": "ISC",
-  "devDependencies": {
+  "dependencies": {
     "@types/chokidar": "^1.4.29",
     "@types/node": "^6.0.46",
     "bluebird": "^3.4.6",
