@@ -31,7 +31,7 @@ export async function combiner(params: CombinerOptions) {
         const file = files[i];
         const header = getHeader ? getHeader(file) : '';
         let content = await getContent(file);
-        const footer = getHeader ? getFooter(file) : '';
+        const footer = getFooter ? getFooter(file) : '';
 
         if (compileSourceMaps) {
             let {content: fixedContent, sourceFileName, sourceFileContent} = extractSourceMapAndRemoveItFromFile(content);
@@ -55,7 +55,7 @@ export async function combiner(params: CombinerOptions) {
                     const originContent = await plug.fs.readContent(file);
                     sourceMap.sourcesContent.push(originContent);
                 }
-                smw.putExistSourceMap(sourceMap);
+                smw.putExistSourceMap(content, sourceMap);
                 if (sourceMapFile && sourceMapFile.isGenerated) {
                     sourceMapFile.updated = false;
                 }

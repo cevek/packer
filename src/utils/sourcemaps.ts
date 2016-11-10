@@ -1,3 +1,4 @@
+import {logger} from "./logger";
 const charToInteger: {[n: string]: number} = {};
 const charToInteger2: {[n: number]: number} = new Array(256 * 256);
 const integerToChar: {[n: number]: string} = {};
@@ -190,6 +191,18 @@ export class SourceMapWriter {
         }
     }
 
+    private countLines(content: string) {
+        let i = -1;
+        let len = content.length;
+        let count = 0;
+        while (++i < len) {
+            if (content.charCodeAt(i) === 10 /*\n*/) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     putFile(content: string, sourceName: string) {
         this.sources.push(sourceName);
         this.sourcesContent.push(content);
@@ -215,7 +228,7 @@ export class SourceMapWriter {
         this.fileNum++;
     }
 
-    putExistSourceMap(sourceMap: SourceMap) {
+    putExistSourceMap(content: string, sourceMap: SourceMap) {
         const sourcesCount = sourceMap.sources.length;
         for (let i = 0; i < sourcesCount; i++) {
             this.sources.push(sourceMap.sources[i]);
@@ -225,9 +238,19 @@ export class SourceMapWriter {
         this.lineNum = 0;
         this.writeSegment();
         this.addSegment(sourceMap.mappings);
+        const linesCount = this.countLines(content);
         const diff = sourcemapDiffCalc(sourceMap.mappings);
+        const diffLines = linesCount - diff.genLine
+        if (diffLines > 0) {
+            for (let i = 0; i < diffLines; i++) {
+                this.writeNextLine();
+            }
+        }
+        if (diffLines < 0) {
+            logger.error('Incorrect mappings for ' + JSON.stringify(sourceMap));
+        }
 
-        this.genLineNum += diff.genLine;
+        this.genLineNum += diff.genLine + diffLines;
 
         this.genColNum = diff.genCol;
         this.prevGenColNum = diff.genCol;
@@ -241,9 +264,6 @@ export class SourceMapWriter {
 
         this.colNum += diff.col;
         this.prevColNum = diff.col;
-
-        //todo: why?
-        this.writeNextLine();
     }
 
     toSourceMap() {
