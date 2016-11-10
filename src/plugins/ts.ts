@@ -2,7 +2,7 @@ import * as TS from "typescript";
 import * as path from "path";
 import {logger} from "../utils/logger";
 import {plugin} from "../packer";
-import {Plug} from "../utils/Plugin";
+import {Plugin} from "../utils/Plugin";
 import {SourceFile} from "../utils/SourceFile";
 
 interface Cache {
@@ -33,14 +33,14 @@ function formatAndReset(text: string, formatStyle: string) {
 }
 
 
-function reportDiagnostics(plug: Plug, diagnostics: TS.Diagnostic[], host: TS.FormatDiagnosticsHost): void {
+function reportDiagnostics(plug: Plugin, diagnostics: TS.Diagnostic[], host: TS.FormatDiagnosticsHost): void {
     for (const diagnostic of diagnostics) {
         reportDiagnosticWithColorAndContext(plug, diagnostic, host);
     }
 }
 
 
-function reportDiagnosticWithColorAndContext(plug: Plug, diagnostic: TS.Diagnostic, host: TS.FormatDiagnosticsHost): void {
+function reportDiagnosticWithColorAndContext(plug: Plugin, diagnostic: TS.Diagnostic, host: TS.FormatDiagnosticsHost): void {
     let output = "";
 
     if (diagnostic.file) {
@@ -112,7 +112,7 @@ function reportDiagnosticWithColorAndContext(plug: Plug, diagnostic: TS.Diagnost
 
 //todo: if tsconfig.json is editing do not throw error
 export function ts(options: TS.CompilerOptions = {}) {
-    return plugin('ts', async(plug: Plug) => {
+    return plugin('ts', async(plug: Plugin) => {
         //todo: use plug fs methods
         const cache = plug.getCache('ts') as Cache;
 

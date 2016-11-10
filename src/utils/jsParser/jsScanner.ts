@@ -1,11 +1,11 @@
 import {parseJS} from "./jsParser";
 import {promisify} from "../promisify";
-import {Plug} from "../Plugin";
+import {Plugin} from "../Plugin";
 import {SourceFile, Import} from "../SourceFile";
 
 const _resolve = promisify<string>(require('resolve'));
 
-async function resolve(module: string, options: ResolveOptions, plug: Plug): Promise<string> {
+async function resolve(module: string, options: ResolveOptions, plug: Plugin): Promise<string> {
     try {
         return await _resolve(module, options);
     } catch (e) {
@@ -24,7 +24,7 @@ interface ResolveOptions {
 }
 
 export class JSScanner {
-    constructor(private plug: Plug) {
+    constructor(private plug: Plugin) {
 
     }
 

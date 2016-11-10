@@ -1,9 +1,9 @@
 import {plugin} from "../packer";
-import {Plug} from "../utils/Plugin";
+import {Plugin} from "../utils/Plugin";
 import {combiner} from "../utils/combiner";
 
 export function combineCSS(outfile: string) {
-    return plugin('combineCSS', async (plug: Plug) => {
+    return plugin('combineCSS', async (plug: Plugin) => {
         const fullOutfile = plug.normalizeDestName(outfile);
         const files = plug.stage.list().filter(file => file.extName === 'css' && file.fullName !== fullOutfile);
         const hasUpdates = files.some(file => file.updated);

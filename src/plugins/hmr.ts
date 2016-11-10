@@ -1,8 +1,8 @@
 import {plugin} from "../packer";
-import {Plug} from "../utils/Plugin";
+import {Plugin} from "../utils/Plugin";
 
 export function hmr() {
-    return plugin('hmr', async (plug: Plug) => {
+    return plugin('hmr', async (plug: Plugin) => {
 
     });
 }

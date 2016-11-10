@@ -1,7 +1,7 @@
 import {plugin} from "../packer";
 import {JSScanner} from "../utils/jsParser/jsScanner";
 import {padRight} from "../utils/common";
-import {Plug} from "../utils/Plugin";
+import {Plugin} from "../utils/Plugin";
 import {combiner} from "../utils/combiner";
 import {SourceFile, Import} from "../utils/SourceFile";
 
@@ -28,7 +28,7 @@ var global = window;\n`;
 
 
 export function combineJS(outfile: string) {
-    return plugin('combineJS', async (plug: Plug) => {
+    return plugin('combineJS', async (plug: Plugin) => {
         console.time('JSScanner');
         const jsScanner = new JSScanner(plug);
         for (let i = 0; i < plug.jsEntries.length; i++) {

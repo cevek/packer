@@ -2,7 +2,7 @@ import path = require('path');
 import {promisify} from "../utils/promisify";
 import {Glob} from "../utils/fs";
 import {plugin} from "../packer";
-import {Plug} from "../utils/Plugin";
+import {Plugin} from "../utils/Plugin";
 
 const render: (options: SassOptions) => Promise<SassResult> = promisify(require('node-sass').render);
 // const sassRender: (options: SassOptions) => Promise<SassResult> = promisify(require('node-sass').render);
@@ -27,7 +27,7 @@ export interface SassResult {
 }
 
 export function sass(globFiles: Glob, options: SassOptions = {}) {
-    return plugin('sass', async(plug: Plug) => {
+    return plugin('sass', async(plug: Plugin) => {
         if (options.sourceMap == null) {
             options.sourceMap = plug.options.sourceMap;
         }

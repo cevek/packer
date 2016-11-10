@@ -1,11 +1,11 @@
 import {SourceMapWriter, extractSourceMapAndRemoveItFromFile, parseSourceMapJSON} from "./sourcemaps";
 import * as path from "path";
-import {Plug} from "./Plugin";
+import {Plugin} from "./Plugin";
 import {SourceFile} from "./SourceFile";
 
 export interface CombinerOptions {
     type: 'js' | 'css',
-    plug: Plug;
+    plug: Plugin;
     files: SourceFile[];
     outfile: string;
     superHeader: string;
