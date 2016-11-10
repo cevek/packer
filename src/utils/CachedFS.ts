@@ -3,6 +3,7 @@ import * as fs from "fs";
 import {Stats, FSWatcher} from "fs";
 import * as path from "path";
 import {SourceFile} from "./SourceFile";
+import {logger} from "./logger";
 
 export interface GlobOptions {
     cwd?: string;
@@ -186,6 +187,9 @@ export class CachedFS {
         for (let i = 0; i < result.length; i++) {
             const filename = result[i];
             files.push(await this.readStats(this.normalizeName(filename)));
+        }
+        if (files.length == 0) {
+            logger.error('Find files empty result by query: ' + filesGlob);
         }
         return files;
     }
