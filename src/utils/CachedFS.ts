@@ -153,6 +153,7 @@ export class CachedFS {
     }
 
     async write(file: SourceFile) {
+        await this.mkDir(file.dirName);
         this.useSyncMethods ? fs.writeFileSync(file.fullName, file.content) : await writeFileAsync(file.fullName, file.content);
     }
 
