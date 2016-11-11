@@ -32,11 +32,22 @@ export function sass(globFiles: Glob, options: SassOptions = {}) {
             options.sourceMap = plug.options.sourceMap;
         }
         const files = await plug.fs.findFiles(globFiles);
-        files.forEach(file => plug.stage.addFile(file));
+        files.forEach(file => {
+            plug.stage.addFile(file);
+            plug.fs.watch(file);
+        });
 
-        const updatedFiles = plug.stage.list().filter(file => file.updated && file.extName.match(/^s[ac]ss$/));
-        for (let i = 0; i < updatedFiles.length; i++) {
-            const file = updatedFiles[i];
+        const sassFiles = plug.stage.list().filter(file => file.extName.match(/^s[ac]ss$/));
+/*
+        const updatedFiles = sassFiles.filter(file => file.updated);
+        if (sassFiles.length > 0 && updatedFiles.length == 0) {
+            return;
+        }
+*/
+        // console.log(plug.fs.getWatcherFiles().map(file => file.fullName));
+        // const updatedFiles = plug.stage.list().filter(file => file.updated && file.extName.match(/^s[ac]ss$/));
+        for (let i = 0; i < sassFiles.length; i++) {
+            const file = sassFiles[i];
             const cssName = file.dirName + '/' + file.getBasename(true) + '.css';
 
             options.file = file.fullName;
