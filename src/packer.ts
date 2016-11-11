@@ -58,7 +58,6 @@ export class Packer {
     private async watchRunner(callback: (files: PackerResult) => void) {
         try {
             this.plug.performance.measureStart('overall');
-            logger.clear();
             logger.info(`Incremental build started...`);
             await this.executor(Promise.resolve(this.plug));
             const dur = this.plug.performance.measureEnd('overall');
@@ -82,6 +81,7 @@ export class Packer {
                 timerRunned = true;
                 setTimeout(async() => {
                     this.plug.clear();
+                    logger.clear();
                     this.plug.watcher.removeListener('change', listener);
                     for (let i = 0; i < changedFiles.length; i++) {
                         const filename = changedFiles[i];
