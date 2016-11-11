@@ -21,6 +21,8 @@ const mkdirpAsync = promisify(require('mkdirp'));
 export class CachedFS {
     // null - file doesn't exist
     private nodes = new Map<string, SourceFile>();
+    private watchedFiles = new Set<SourceFile>();
+
     useSyncMethods = true;
     skipNodeModulesWatch = true;
     private context: string;
@@ -207,6 +209,11 @@ export class CachedFS {
     watch(file: SourceFile) {
         if (!this.skipNodeModulesWatch || !file.fullName.match(/\/node_modules\//)) {
             this.watcher.add(file.fullName);
+            this.watchedFiles.add(file);
         }
+    }
+
+    getWatcherFiles() {
+        return [...this.watchedFiles];
     }
 }
