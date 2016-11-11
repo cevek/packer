@@ -55,16 +55,21 @@ export function sass(globFiles?: Glob, options: SassOptions = {}) {
         });
 
         const sassFiles = plug.stage.list().filter(file => file.extName.match(/^s[ac]ss$/));
-/*
-        const updatedFiles = sassFiles.filter(file => file.updated);
-        if (sassFiles.length > 0 && updatedFiles.length == 0) {
-            return;
-        }
-*/
-        // console.log(plug.fs.getWatcherFiles().map(file => file.fullName));
-        // const updatedFiles = plug.stage.list().filter(file => file.updated && file.extName.match(/^s[ac]ss$/));
         for (let i = 0; i < sassFiles.length; i++) {
             const file = sassFiles[i];
+            if (file.imports) {
+                for (let j = 0; j < file.imports.length; j++) {
+                    const imprt = file.imports[j];
+                    if (imprt.file.updated) {
+                        file.updated = true;
+                    }
+                }
+            }
+        }
+
+        const updatedFiles = sassFiles.filter(file => file.updated);
+        for (let i = 0; i < updatedFiles.length; i++) {
+            const file = updatedFiles[i];
             const cssName = file.dirName + '/' + file.getBasename(true) + '.css';
 
             options.file = file.fullName;
@@ -72,11 +77,18 @@ export function sass(globFiles?: Glob, options: SassOptions = {}) {
             options.data = await plug.fs.readContent(file);
             const result = await render(options);
             const cssFile = plug.fs.createGeneratedFile(cssName, result.css);
+            file.imports = [];
             plug.stage.addFile(cssFile);
             for (let j = 0; j < result.stats.includedFiles.length; j++) {
                 const filename = result.stats.includedFiles[j];
-                const file = plug.fs.findOrCreate(filename);
-                plug.fs.watch(file);
+                const depFile = plug.fs.findOrCreate(filename);
+                plug.fs.watch(depFile);
+                file.imports.push({
+                    file: depFile,
+                    module: null,
+                    startPos: null,
+                    endPos: null
+                });
             }
             if (result.map) {
                 plug.fs.createGeneratedFile(cssName + '.map', result.map);
