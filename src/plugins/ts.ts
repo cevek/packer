@@ -121,6 +121,10 @@ export function ts(options: TS.CompilerOptions = {}) {
         options.inlineSourceMap = false;
 
         const configFileName = (options && options.project) || TS.findConfigFile(plug.options.context, TS.sys.fileExists);
+        if (!configFileName) {
+            throw new Error('tsconfig.json not found in ' + plug.options.context);
+        }
+
         const configFile = plug.fs.findOrCreate(configFileName);
         const cachedTSFiles = plug.fs.getAllCached().filter(file => file.extName.match(/^[tj]sx?$/));
 
