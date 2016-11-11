@@ -29,18 +29,15 @@ var global = window;\n`;
 
 export function combineJS(outfile: string) {
     return plugin('combineJS', async (plug: Plugin) => {
-        console.time('JSScanner');
+        // console.time('JSScanner');
         const jsScanner = new JSScanner(plug);
-        for (let i = 0; i < plug.jsEntries.length; i++) {
-            const file = plug.jsEntries[i];
-            await jsScanner.scan(file);
-        }
-        console.timeEnd('JSScanner');
+        // console.timeEnd('JSScanner');
 
         const numberHash = new Map<SourceFile, number>();
         let num = 0;
 
-        function numberImports(file: SourceFile) {
+        async function numberImports(file: SourceFile) {
+            await jsScanner.scan(file);
             if (numberHash.has(file)) {
                 return;
             }
@@ -48,7 +45,7 @@ export function combineJS(outfile: string) {
             if (file.imports) {
                 for (let i = 0; i < file.imports.length; i++) {
                     const imprt = file.imports[i];
-                    numberImports(imprt.file);
+                    await numberImports(imprt.file);
                 }
             }
         }
@@ -68,7 +65,7 @@ export function combineJS(outfile: string) {
         let superFooter = '';
         for (let i = 0; i < plug.jsEntries.length; i++) {
             const file = plug.jsEntries[i];
-            numberImports(file);
+            await numberImports(file);
             superFooter = `\nrequire(${numberHash.get(file)});`;
         }
         superFooter += '\n})()';
@@ -76,6 +73,10 @@ export function combineJS(outfile: string) {
         const files = [...numberHash.keys()];
         const hasUpdates = files.some(file => file.extName === 'js' && file.updated);
         if (hasUpdates) {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                await jsScanner.scan(file);
+            }
             await combiner({
                 type: 'js',
                 plug,
