@@ -16,6 +16,7 @@
     "mkdirp": "^0.5.1",
     "node-sass": "^3.11.2",
     "resolve": "^1.1.7",
-    "typescript": "^2.0.6"
+    "typescript": "^2.0.6",
+    "fast-promise": "^1.0.0"
   }
 }

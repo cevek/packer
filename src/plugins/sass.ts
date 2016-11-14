@@ -1,3 +1,4 @@
+import '../helpers';
 import path = require('path');
 import {promisify} from "../utils/promisify";
 import {Glob} from "../utils/fs";
@@ -26,7 +27,7 @@ export interface SassResult {
     }
 }
 
-export function sass(globFiles: Glob, options: SassOptions = {}) {
+export function sass(globFiles?: Glob, options: SassOptions = {}) {
     return plugin('sass', async(plug: Plugin) => {
         if (options.sourceMap == null) {
             options.sourceMap = plug.options.sourceMap;
