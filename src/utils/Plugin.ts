@@ -8,13 +8,16 @@ import {SourceFile} from "./SourceFile";
 import chokidar = require('chokidar');
 import {logger} from "./logger";
 import {Stage} from "./Stage";
+import {JSScanner} from "./jsParser/jsScanner";
 export class Plugin {
     options: PackerOptions;
-    jsEntries: SourceFile[] = [];
+    jsEntries = new Set<SourceFile>();
     fs: CachedFS;
     performance: PerformanceMeasurer;
     stage: Stage;
     outputFiles = new Set<SourceFile>();
+    jsScanner = new JSScanner(this);
+
 
     watcher: fs.FSWatcher = chokidar.watch('');
     private cacheData = new Map<string, any>();
@@ -72,7 +75,8 @@ export class Plugin {
     clear() {
         // this.watcher.close();
         // this.watcher = chokidar.watch('');
-        this.jsEntries = [];
+        this.jsEntries = new Set();
+        this.jsScanner = new JSScanner(this);
         this.performance = new PerformanceMeasurer();
         this.fs.resetUpdatedFiles();
         // this.stage = new Stage();

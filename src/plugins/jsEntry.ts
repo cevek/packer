@@ -10,7 +10,7 @@ export function jsEntry(filename: string) {
             plug.printAllGeneratedFiles();
             throw new Error(`jsEntry: file ${filename} doesn't exist`);
         }
-        plug.jsEntries.push(file);
+        plug.jsEntries.add(file);
         // console.log('add entry', filename);
     });
 }

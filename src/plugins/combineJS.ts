@@ -27,17 +27,20 @@ var process = {
 var global = window;\n`;
 
 
-export function combineJS(outfile: string) {
+export function combineJS(entryFilename: string, outfile: string) {
     return plugin('combineJS', async (plug: Plugin) => {
         // console.time('JSScanner');
         const jsScanner = new JSScanner(plug);
+        entryFilename = plug.fs.normalizeName(entryFilename);
+        const entryFile = plug.fs.getFromCache(entryFilename);
+        plug.jsEntries.add(entryFile);
         // console.timeEnd('JSScanner');
 
         const numberHash = new Map<SourceFile, number>();
         let num = 0;
 
         async function numberImports(file: SourceFile) {
-            await jsScanner.scan(file);
+            // await jsScanner.scan(file);
             if (numberHash.has(file)) {
                 return;
             }
@@ -45,7 +48,7 @@ export function combineJS(outfile: string) {
             if (file.imports) {
                 for (let i = 0; i < file.imports.length; i++) {
                     const imprt = file.imports[i];
-                    await numberImports(imprt.file);
+                    numberImports(imprt.file);
                 }
             }
         }
@@ -63,10 +66,9 @@ export function combineJS(outfile: string) {
         }
 
         let superFooter = '';
-        for (let i = 0; i < plug.jsEntries.length; i++) {
-            const file = plug.jsEntries[i];
-            await numberImports(file);
-            superFooter = `\nrequire(${numberHash.get(file)});`;
+        for (let file of plug.jsEntries) {
+            numberImports(file);
+            superFooter += `\nrequire(${numberHash.get(file)});`;
         }
         superFooter += '\n})()';
 
