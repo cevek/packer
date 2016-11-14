@@ -1,9 +1,15 @@
-import {logger, ConsoleStyle} from "./utils/logger";
-import {padRight, padLeft} from "./utils/common";
+import "./helpers";
+import {logger} from "./utils/logger";
+import {padRight, padLeft, formatBytes} from "./utils/common";
 import {Plugin} from "./utils/Plugin";
-import chokidar = require('chokidar');
 import * as path from "path";
+import chokidar = require('chokidar');
+import FastPromise from "fast-promise";
 export * from "./utils/Plugin";
+
+export {combineJS} from "./plugins/combineJS";
+export {combineCSS} from "./plugins/combineCSS";
+export {copy} from "./plugins/copy";
 
 export interface PackerOptions {
     context: string;
@@ -45,10 +51,26 @@ export class Packer {
         this.plug = new Plugin(false, this.options);
         this.plug.performance.measureStart('overall');
         logger.info(`Build started...`);
-        await this.executor(Promise.resolve(this.plug));
+        await this.exec();
         const dur = this.plug.performance.measureEnd('overall');
         logger.info(`Build done after ${dur | 0}ms`);
         return this.result();
+    }
+
+    private async exec() {
+        await this.executor(FastPromise.resolve(this.plug));
+        const files = this.plug.stage.list();
+        // plug.printAllGeneratedFiles()
+        // plug.printStageFiles();
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            if (file.updated && this.plug.inDestFolder(file)) {
+                await this.plug.fs.write(file);
+                const content = await this.plug.fs.readContent(file);//todo: buffer length
+                this.plug.outputFiles.add(file);
+                logger.success(padRight(`Emit file: ${this.plug.fs.relativeName(file)}`, 40) + padLeft(formatBytes(content.length), 10));
+            }
+        }
     }
 
     private result() {
@@ -59,7 +81,7 @@ export class Packer {
         try {
             this.plug.performance.measureStart('overall');
             logger.info(`Incremental build started...`);
-            await this.executor(Promise.resolve(this.plug));
+            await this.exec();
             const dur = this.plug.performance.measureEnd('overall');
             const allMeasures = this.plug.performance.getAllMeasures();
             for (let i = 0; i < allMeasures.length; i++) {
