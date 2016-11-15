@@ -75,6 +75,11 @@ export class CachedFS {
         return file;
     }
 
+    async createGeneratedFromFile(filename: string, originalfile: SourceFile) {
+        await this.readContent(originalfile);
+        return this.createGeneratedFile(filename, originalfile.content);
+    }
+
     findOrCreate(filename: string, isDir = false) {
         let file = this.getFromCache(filename);
         if (!file) {
