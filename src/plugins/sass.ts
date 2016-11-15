@@ -7,12 +7,28 @@ import {Plugin} from "../utils/Plugin";
 
 const render: (options: SassOptions) => Promise<SassResult> = promisify(require('node-sass').render);
 // const sassRender: (options: SassOptions) => Promise<SassResult> = promisify(require('node-sass').render);
+export interface SassImporter {
+    (url: string, prev: string, done: (data: { file: string; contents: string; }) => void): void;
+}
 export interface SassOptions {
     file?: string;
     data?: string;
     includePaths?: string[];
     sourceMap?: boolean | string;
     outFile?: string;
+    importer?: SassImporter | SassImporter[];
+    functions?: { [key: string]: Function };
+    indentedSyntax?: boolean;
+    indentType?: string;
+    indentWidth?: number;
+    linefeed?: string;
+    omitSourceMapUrl?: boolean;
+    outputStyle?: string;
+    precision?: number;
+    sourceComments?: boolean;
+    sourceMapContents?: boolean;
+    sourceMapEmbed?: boolean;
+    sourceMapRoot?: boolean;
 }
 
 export interface SassResult {
