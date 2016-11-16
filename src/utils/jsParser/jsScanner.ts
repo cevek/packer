@@ -65,12 +65,19 @@ export class JSScanner {
                         file: null,
                         startPos: r[i + 4] - 1,
                         endPos: r[i + 5] + 1,
-                        module: code.substring(r[i + 4], r[i + 5])
+                        module: this.replaceAliases(code.substring(r[i + 4], r[i + 5]))
                     });
                 }
             }
         }
         return imports;
+    }
+
+    private replaceAliases(module: string) {
+        if (this.plug.options.alias) {
+            return this.plug.options.alias[module] || module;
+        }
+        return module;
     }
 
     async scan(file: SourceFile) {

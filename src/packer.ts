@@ -15,6 +15,7 @@ export interface PackerOptions {
     context: string;
     dest: string;
     sourceMap?: boolean;
+    alias?: {[module: string]: string};
 }
 
 export type PackerResult = string[];
@@ -28,10 +29,11 @@ export class Packer {
     }
 
     private processOptions(options: PackerOptions) {
-        const defaultOptions = {
+        const defaultOptions: PackerOptions = {
             context: process.cwd(),
             sourceMap: true,
-            dest: 'dist'
+            dest: 'dist',
+            alias: null,
         };
         if (options.context) {
             defaultOptions.context = path.resolve(options.context);
@@ -44,6 +46,7 @@ export class Packer {
         if (typeof options.sourceMap === 'boolean') {
             defaultOptions.sourceMap = options.sourceMap;
         }
+        defaultOptions.alias = options.alias;
         this.options = defaultOptions;
     }
 
