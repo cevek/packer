@@ -33,6 +33,10 @@ export function combineJS(entryFilename: string, outfile: string) {
         const jsScanner = new JSScanner(plug);
         entryFilename = plug.fs.normalizeName(entryFilename);
         const entryFile = plug.fs.getFromCache(entryFilename);
+        if (!entryFile) {
+            plug.printAllGeneratedFiles();
+            throw new Error("entryFilename doesn't exists: " + entryFilename);
+        }
         plug.jsEntries.add(entryFile);
         // console.timeEnd('JSScanner');
 
