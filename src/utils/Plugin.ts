@@ -46,12 +46,7 @@ export class Plugin {
     }
 
     normalizeDestName(filename: string) {
-        filename = path.normalize(filename);
-        if (path.isAbsolute(filename)) {
-            filename = path.relative(this.options.context, filename);
-        }
-        filename = path.normalize(this.options.dest + '/' + filename);
-        return filename;
+        return path.normalize(this.options.dest + '/' + filename);
     }
 
     printAllGeneratedFiles() {
