@@ -1,6 +1,6 @@
 {
   "name": "webbuilder",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "",
   "main": "dist/packer.js",
   "typings": "dist/packer.d.ts",
@@ -17,7 +17,6 @@
     "node-sass": "^3.11.2",
     "resolve": "^1.1.7",
     "typescript": "^2.0.6",
-    "fast-promise": "^1.0.0",
-    "@types/chokidar": "^1.4.29"
+    "fast-promise": "^1.0.0"
   }
 }
