@@ -99,6 +99,9 @@ export class JSScanner {
             }, this.plug);
 
             imprt.file = this.plug.fs.getFromCache(moduleResolvedUrl);
+            if (!imprt.file) {
+                throw new Error(`Module "${moduleResolvedUrl}" not found in ${this.plug.fs.relativeName(file)}`);
+            }
             this.plug.fs.readContent(imprt.file);
             newImports.push(imprt);
             // console.log('child scan', imprt.file.updated, imprt.file.extName, imprt.file.fullName);
