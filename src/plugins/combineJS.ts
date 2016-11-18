@@ -35,7 +35,7 @@ export function combineJS(entryFilename: string, outfile: string) {
         const entryFile = plug.fs.getFromCache(entryFilename);
         if (!entryFile) {
             plug.printAllGeneratedFiles();
-            throw new Error("entryFilename doesn't exists: " + entryFilename);
+            throw new Error(`entryFilename ${entryFilename} doesn't exists`);
         }
         plug.jsEntries.add(entryFile);
         // console.timeEnd('JSScanner');
@@ -62,8 +62,16 @@ export function combineJS(entryFilename: string, outfile: string) {
                 for (let i = 0; i < imports.length; i++) {
                     const imprt = imports[i];
                     const len = imprt.endPos - imprt.startPos;
-                    // todo: check min len
-                    code = code.substr(0, imprt.startPos) + padRight(numberHash.get(imprt.file), len) + code.substr(imprt.endPos);
+                    const num = numberHash.get(imprt.file);
+                    if (!Number.isFinite(num)) {
+                        throw new Error('num is not correct: ' + num);
+                    }
+                    const replace = padRight(num, len);
+                    const lenBefore = imprt.endPos - imprt.startPos;
+                    if (lenBefore > replace.length) {
+                        throw new Error(`Replace length is not correct: ${lenBefore} => ${replace.length}`);
+                    }
+                    code = code.substr(0, imprt.startPos) + replace + code.substr(imprt.endPos);
                 }
             }
             return code;
