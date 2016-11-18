@@ -12,6 +12,7 @@ interface Cache {
     configParseResult: TS.ParsedCommandLine;
     compilerOptions: TS.CompilerOptions;
     compilerHost: TS.CompilerHost;
+    generatedFiles: SourceFile[]
 }
 
 
@@ -121,7 +122,7 @@ export function ts(options: TS.CompilerOptions = {}) {
         options.sourceMap = plug.options.sourceMap;
         options.inlineSourceMap = false;
 
-        const generatedFiles: SourceFile[] = [];
+        cache.generatedFiles = [];
 
         const configFileName = (options && options.project) || TS.findConfigFile(plug.options.context, TS.sys.fileExists);
         if (!configFileName) {
@@ -183,9 +184,7 @@ export function ts(options: TS.CompilerOptions = {}) {
             cache.compilerHost.writeFile = (file, data) => {
                 // console.log('put', file);
                 const dist = plug.fs.createGeneratedFile(file, data);
-                generatedFiles.push(dist);
-                //console.log(dist.fullName);
-
+                cache.generatedFiles.push(dist);
             };
         }
         const program = TS.createProgram(cache.configParseResult.fileNames, cache.compilerOptions, cache.compilerHost);
@@ -208,8 +207,8 @@ export function ts(options: TS.CompilerOptions = {}) {
         if (diagnostics.length) {
             reportDiagnostics(plug, (TS as any).sortAndDeduplicateDiagnostics(diagnostics), cache.compilerHost);
         }
-        for (let i = 0; i < generatedFiles.length; i++) {
-            const file = generatedFiles[i];
+        for (let i = 0; i < cache.generatedFiles.length; i++) {
+            const file = cache.generatedFiles[i];
             await plug.jsScanner.scan(file);
         }
         cache.program = program;
