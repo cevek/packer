@@ -54,11 +54,7 @@ export class CachedFS {
     }
 
     getFromCache(filename: string) {
-        const file = this.nodes.get(filename);
-        if (file === null) {
-            throw new Error('File ' + filename + ' not found');
-        }
-        return file;
+        return this.nodes.get(filename);
     }
 
     createGeneratedFile(filename: string, content: Buffer | string) {
@@ -108,12 +104,12 @@ export class CachedFS {
     }
 
     async readStats(filename: string) {
-        return this.getFromCache(filename) ||
+        const file = this.getFromCache(filename);
+        if (file === null) {
+            return null;
+        }
+        return file ||
             this.createStat(filename, this.useSyncMethods ? fs.statSync(filename) : await statAsync(filename));
-    }
-
-    readStatsSync(filename: string) {
-        return this.getFromCache(filename) || this.createStat(filename, fs.statSync(filename));
     }
 
     async tryFile(filename: string): Promise<SourceFile> {
@@ -126,8 +122,16 @@ export class CachedFS {
     }
 
     tryFileSync(filename: string): SourceFile {
+        const file = this.getFromCache(filename);
+        if (file === null) {
+            return null;
+        }
+        return file || this._tryFileSync(filename);
+    }
+
+    private _tryFileSync(filename: string): SourceFile {
         try {
-            return this.readStatsSync(filename);
+            return this.createStat(filename, fs.statSync(filename));
         } catch (e) {
             this.nodes.set(filename, null);
             return null;
