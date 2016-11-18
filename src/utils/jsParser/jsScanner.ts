@@ -5,13 +5,11 @@ import {SourceFile, Import} from "../SourceFile";
 
 const _resolve = promisify<string>(require('resolve'));
 
-async function resolve(module: string, options: ResolveOptions, plug: Plugin): Promise<string> {
+async function resolve(file: SourceFile, module: string, options: ResolveOptions, plug: Plugin): Promise<string> {
     try {
         return await _resolve(module, options);
     } catch (e) {
-        plug.printAllGeneratedFiles();
-        // todo: common errors: filename register
-        throw e;
+        throw new Error(`Cannot find module "${module}" from ${plug.fs.relativeName(file)}`);
     }
 }
 
@@ -92,7 +90,7 @@ export class JSScanner {
         const newImports: Import[] = [];
         for (let i = 0; i < imports.length; i++) {
             const imprt = imports[i];
-            const moduleResolvedUrl = await resolve(imprt.module, {
+            const moduleResolvedUrl = await resolve(file, imprt.module, {
                 basedir: file.dirName,
                 readFile: this.readFile,
                 isFile: this.isFile
@@ -100,7 +98,7 @@ export class JSScanner {
 
             imprt.file = this.plug.fs.getFromCache(moduleResolvedUrl);
             if (!imprt.file) {
-                throw new Error(`Module "${moduleResolvedUrl}" not found in ${this.plug.fs.relativeName(file)}`);
+                throw new Error(`Cannot find module "${moduleResolvedUrl}" from ${this.plug.fs.relativeName(file)}`);
             }
             this.plug.fs.readContent(imprt.file);
             newImports.push(imprt);
