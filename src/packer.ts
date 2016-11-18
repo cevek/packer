@@ -5,6 +5,7 @@ import {Plugin} from "./utils/Plugin";
 import * as path from "path";
 import chokidar = require('chokidar');
 import FastPromise from "fast-promise";
+import Timer = NodeJS.Timer;
 export * from "./utils/Plugin";
 
 export {combineJS} from "./plugins/combineJS";
@@ -80,6 +81,7 @@ export class Packer {
         return [...this.plug.outputFiles].map(file => this.plug.relativeToDest(file))
     }
 
+    private timeout: Timer;
     private async watchRunner(callback: (files: PackerResult) => void) {
         try {
             this.plug.performance.measureStart('overall');
@@ -100,11 +102,16 @@ export class Packer {
         }
         let timerRunned = false;
         const changedFiles: string[] = [];
+        clearTimeout(this.timeout);
         let listener = (filename: string) => {
+            //hack
+            if (!path.isAbsolute(filename)) {
+                return;
+            }
             changedFiles.push(filename);
             if (!timerRunned) {
                 timerRunned = true;
-                setTimeout(async() => {
+                this.timeout = setTimeout(async() => {
                     this.plug.clear();
                     logger.clear();
                     this.plug.watcher.removeListener('change', listener);
