@@ -37,7 +37,7 @@ export function combineJS(entryFilename: string, outfile: string) {
             plug.printAllGeneratedFiles();
             throw new Error(`entryFilename ${entryFilename} doesn't exists`);
         }
-        plug.jsEntries.add(entryFile);
+        plug.jsEntries.push(entryFile);
         // console.timeEnd('JSScanner');
 
         const numberHash = new Map<SourceFile, number>();
@@ -64,7 +64,7 @@ export function combineJS(entryFilename: string, outfile: string) {
                     const len = imprt.endPos - imprt.startPos;
                     const num = numberHash.get(imprt.file);
                     if (!Number.isFinite(num)) {
-                        throw new Error('num is not correct: ' + num);
+                        throw new Error('num ' + num + ' is not correct for file '+ plug.fs.relativeName(imprt.file));
                     }
                     const replace = padRight(num, len);
                     const lenBefore = imprt.endPos - imprt.startPos;

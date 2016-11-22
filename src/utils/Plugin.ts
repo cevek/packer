@@ -11,7 +11,7 @@ import {Stage} from "./Stage";
 import {JSScanner} from "./jsParser/jsScanner";
 export class Plugin {
     options: PackerOptions;
-    jsEntries = new Set<SourceFile>();
+    jsEntries: SourceFile[] = [];
     fs: CachedFS;
     performance: PerformanceMeasurer;
     stage: Stage;
@@ -70,7 +70,7 @@ export class Plugin {
     clear() {
         // this.watcher.close();
         // this.watcher = chokidar.watch('');
-        this.jsEntries = new Set();
+        this.jsEntries = [];
         this.jsScanner = new JSScanner(this);
         this.performance = new PerformanceMeasurer();
         this.fs.resetUpdatedFiles();
