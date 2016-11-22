@@ -285,16 +285,17 @@ export function extractSourceMapAndRemoveItFromFile(content: string) {
     //     /*# sourceMappingURL=foo.js.map */
     const mapFileCommentRx = /(?:\/\/[@#][ \t]+sourceMappingURL=([^\s'"]+?)[ \t]*$)|(?:\/\*[@#][ \t]+sourceMappingURL=([^\*]+?)[ \t]*(?:\*\/){1}[ \t]*$)/mg;
 
+
+    let sourceFileContent: string;
     let sourceFileName: string;
-    content = content.replace(mapFileCommentRx, (m, m1, m2) => {
-        sourceFileName = m1 || m2;
+    content = content.replace(commentRx, (m, m1) => {
+        sourceFileContent = new Buffer(m1, 'base64').toString();
         return '';
     });
 
-    let sourceFileContent: string;
-    if (!sourceFileName) {
-        content = content.replace(commentRx, (m, m1) => {
-            sourceFileContent = new Buffer(m1, 'base64').toString();
+    if (!sourceFileContent) {
+        content = content.replace(mapFileCommentRx, (m, m1, m2) => {
+            sourceFileName = m1 || m2;
             return '';
         });
     }
