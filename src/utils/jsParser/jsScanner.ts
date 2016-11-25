@@ -2,6 +2,7 @@ import {parseJS} from "./jsParser";
 import {promisify} from "../promisify";
 import {Plugin} from "../Plugin";
 import {SourceFile, Import} from "../SourceFile";
+import {logger} from "../logger";
 
 const _resolve = promisify<string>(require('resolve'));
 
@@ -47,7 +48,7 @@ export class JSScanner {
 
     private scanned = new Map<SourceFile, boolean>();
 
-    private findImports(code: string) {
+    private findImports(filename: string, code: string) {
         const r = parseJS(code, this.isRequire);
         const len = r.length;
         let start = 0;
@@ -59,12 +60,17 @@ export class JSScanner {
                 end = r[i + 2];
                 // todo: check abc. require ("foo");
                 if (end - start === 7 && code[start] === 'r' && code.substring(start, end) === 'require' && code[end] == '(' && code[start - 1] !== '.' && r[i + 3] === 2 /*string*/) {
-                    imports.push({
-                        file: null,
-                        startPos: r[i + 4] - 1,
-                        endPos: r[i + 5] + 1,
-                        module: this.replaceAliases(code.substring(r[i + 4], r[i + 5]))
-                    });
+                    if (code[r[i + 5] + 1] === ')') {
+                        imports.push({
+                            file: null,
+                            startPos: r[i + 4] - 1,
+                            endPos: r[i + 5] + 1,
+                            module: this.replaceAliases(code.substring(r[i + 4], r[i + 5]))
+                        });
+                    }
+                    else {
+                        logger.warning(`Incorrect ${code.substring(r[i + 4] - 9, r[i + 5] + 2)} in ${filename}`);
+                    }
                 }
             }
         }
@@ -85,7 +91,8 @@ export class JSScanner {
 
         this.scanned.set(file, true);
         let code = await this.plug.fs.readContent(file);
-        const imports = this.findImports(code);
+        const filename = this.plug.fs.relativeName(file);
+        const imports = this.findImports(filename, code);
 
         const newImports: Import[] = [];
         for (let i = 0; i < imports.length; i++) {
