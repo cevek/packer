@@ -45,8 +45,9 @@ export interface SassResult {
 
 export function sass(globFiles?: Glob, options: SassOptions = {}) {
     return plugin('sass', async(plug: Plugin) => {
-        if (options.sourceMap == null) {
-            options.sourceMap = plug.options.sourceMap;
+        if (plug.options.sourceMap) {
+            options.sourceMap = true;
+            options.sourceMapEmbed = true;
         }
         const files = await plug.fs.findFiles(globFiles);
         files.forEach(file => {
@@ -89,9 +90,6 @@ export function sass(globFiles?: Glob, options: SassOptions = {}) {
                     startPos: null,
                     endPos: null
                 });
-            }
-            if (result.map) {
-                plug.fs.createGeneratedFile(cssName + '.map', result.map);
             }
         }
     });
