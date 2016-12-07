@@ -11,14 +11,15 @@ import {Stage} from "./Stage";
 import {JSScanner} from "./jsParser/jsScanner";
 export class Plugin {
     options: PackerOptions;
-    jsEntries: SourceFile[] = [];
+    jsEntries: SourceFile[];
     fs: CachedFS;
     performance: PerformanceMeasurer;
     stage: Stage;
-    outputFiles = new Set<SourceFile>();
-    jsScanner = new JSScanner(this);
+    changedFiles: Set<SourceFile>;
+    emittedFiles: Set<SourceFile>;
+    jsScanner:JSScanner;
 
-
+    //todo: remove from here
     watcher: fs.FSWatcher = chokidar.watch('');
     private cacheData = new Map<string, any>();
 
@@ -27,7 +28,7 @@ export class Plugin {
         this.options = options;
         this.fs = new CachedFS(this.options.context, this.watcher);
         this.performance = new PerformanceMeasurer();
-        this.stage = new Stage();
+        this.reset();
     }
 
     getCache(name: string) {
@@ -67,11 +68,25 @@ export class Plugin {
         return file.fullName.substr(0, this.options.dest.length) == this.options.dest;
     }
 
-    clear() {
+    reset() {
+        this.stage = new Stage();
         this.jsEntries = [];
         this.jsScanner = new JSScanner(this);
         this.performance = new PerformanceMeasurer();
+        this.emittedFiles = new Set();
+        this.changedFiles = new Set();
         this.fs.resetUpdatedFiles();
-        this.stage = new Stage();
+    }
+
+    destroy() {
+        this.stage = null;
+        this.jsEntries = null;
+        this.jsScanner = null;
+        this.performance = null;
+        this.emittedFiles = null;
+        this.changedFiles = null;
+        this.fs = null;
+        this.watcher = null;
+        this.cacheData = null;
     }
 }
