@@ -11,6 +11,8 @@ export * from "./utils/Plugin";
 export {combineJS} from "./plugins/combineJS";
 export {combineCSS} from "./plugins/combineCSS";
 export {copy} from "./plugins/copy";
+export {hash} from "./plugins/hash";
+export {conditional} from "./utils/conditional";
 
 export interface PackerOptions {
     context: string;

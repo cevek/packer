@@ -138,7 +138,7 @@ export class CachedFS {
         }
     }
 
-    async rename(file: SourceFile, newFilename: string) {
+    rename(file: SourceFile, newFilename: string) {
         this.nodes.delete(file.fullName);
         this.nodes.set(newFilename, file);
         file.setFullName(newFilename);
