@@ -3,8 +3,8 @@ import {logger} from "./utils/logger";
 import {padRight, padLeft, formatBytes} from "./utils/common";
 import {Plugin} from "./utils/Plugin";
 import * as path from "path";
-import chokidar = require('chokidar');
 import FastPromise from "fast-promise";
+import chokidar = require('chokidar');
 import Timer = NodeJS.Timer;
 export * from "./utils/Plugin";
 
@@ -21,13 +21,18 @@ export interface PackerOptions {
     alias?: {[module: string]: string};
 }
 
-export type PackerResult = string[];
+export interface PackerResult {
+    emittedFiles: string[];
+    changedFiles: string[];
+    emittedJSFiles: string[];
+    emittedCSSFiles: string[];
+}
 
 export class Packer {
     protected plug: Plugin;
     public options: PackerOptions;
 
-    constructor(options: PackerOptions, protected executor: (promise: Promise<Plugin>)=>Promise<Plugin>) {
+    constructor(options: PackerOptions, protected executor: (promise: Promise<Plugin>) => Promise<Plugin>) {
         this.processOptions(options);
     }
 
@@ -53,39 +58,36 @@ export class Packer {
         this.options = defaultOptions;
     }
 
-    async process() {
+    async run(options: {watch?: boolean} = {}) {
         this.plug = new Plugin(false, this.options);
+        if (options.watch) {
+            await this.watchRunner();
+        } else {
+            await this.runOnce();
+        }
+        return this;
+    }
+
+    private result: FastPromise<PackerResult>;
+
+    getResult() {
+        return this.result;
+    }
+
+    private async runOnce() {
+        this.result = new FastPromise<PackerResult>();
         this.plug.performance.measureStart('overall');
         logger.info(`Build started...`);
         await this.exec();
         const dur = this.plug.performance.measureEnd('overall');
         logger.info(`Build done after ${dur | 0}ms`);
-        return this.result();
+        this.result.resolve(this.getCompilationResult());
+        this.plug.destroy();
     }
 
-    private async exec() {
-        await this.executor(FastPromise.resolve(this.plug));
-        const files = this.plug.stage.list();
-        // plug.printAllGeneratedFiles()
-        // plug.printStageFiles();
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
-            if (file.updated && this.plug.inDestFolder(file)) {
-                await this.plug.fs.write(file);
-                const content = await this.plug.fs.readContent(file);//todo: buffer length
-                this.plug.outputFiles.add(file);
-                logger.success(padRight(`Emit file: ${this.plug.fs.relativeName(file)}`, 40) + padLeft(formatBytes(content.length), 10));
-            }
-        }
-    }
-
-    private result() {
-        return [...this.plug.outputFiles].map(file => this.plug.relativeToDest(file))
-    }
-
-    private timeout: Timer;
-    private async watchRunner(callback: (files: PackerResult) => void) {
+    private async watchRunner() {
         try {
+            this.result = new FastPromise<PackerResult>();
             this.plug.performance.measureStart('overall');
             logger.info(`Incremental build started...`);
             await this.exec();
@@ -96,9 +98,7 @@ export class Packer {
                 logger.info(`${padRight(m.name, 20)} ${padLeft(m.dur | 0, 6)}ms`);
             }
             logger.info(`Incremental build done after ${dur | 0}ms\n`);
-            if (callback) {
-                callback(this.result());
-            }
+            this.result.resolve(this.getCompilationResult());
         } catch (e) {
             logger.error(e instanceof Error ? e.stack : e);
         }
@@ -114,7 +114,7 @@ export class Packer {
             if (!timerRunned) {
                 timerRunned = true;
                 this.timeout = setTimeout(async() => {
-                    this.plug.clear();
+                    this.plug.reset();
                     logger.clear();
                     this.plug.watcher.removeListener('change', listener);
                     for (let i = 0; i < changedFiles.length; i++) {
@@ -123,21 +123,50 @@ export class Packer {
                         await this.plug.fs.readContent(file, true);
                         logger.info('Changed ' + this.plug.fs.relativeName(file));
                     }
-                    await this.watchRunner(callback);
+                    await this.watchRunner();
                 }, 50);
             }
         };
         this.plug.watcher.on('change', listener);
     }
 
-    async watch(callback: (files: PackerResult)=>void) {
-        this.plug = new Plugin(true, this.options);
-        await this.watchRunner(callback);
-        return this;
+    private async exec() {
+        await this.executor(FastPromise.resolve(this.plug));
+        const files = this.plug.stage.list();
+        // plug.printAllGeneratedFiles()
+        // plug.printStageFiles();
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            if (this.plug.inDestFolder(file)) {
+                this.plug.emittedFiles.add(file);
+                if (file.updated) {
+                    await this.plug.fs.write(file);
+                    const content = await this.plug.fs.readContent(file);//todo: buffer length
+                    this.plug.changedFiles.add(file);
+                    logger.success(padRight(`Emit file: ${this.plug.fs.relativeName(file)}`, 40) + padLeft(formatBytes(content.length), 10));
+                }
+            }
+        }
     }
+
+    private getCompilationResult() {
+        const changedFiles = [...this.plug.changedFiles];
+        const emittedFiles = [...this.plug.emittedFiles];
+        const result: PackerResult = {
+            changedFiles: changedFiles.map(file => this.plug.relativeToDest(file)),
+            emittedFiles: emittedFiles.map(file => this.plug.relativeToDest(file)),
+            emittedJSFiles: [],
+            emittedCSSFiles: []
+        };
+        result.emittedJSFiles = result.emittedFiles.filter(filename => /\.js$/i.test(filename));
+        result.emittedCSSFiles = result.emittedFiles.filter(filename => /\.css$/i.test(filename));
+        return result;
+    }
+
+    private timeout: Timer;
 }
 
-export function plugin(name: string, fn: (plug: Plugin)=>Promise<void>) {
+export function plugin(name: string, fn: (plug: Plugin) => Promise<void>) {
     return (plug: Plugin) => {
         return new Promise<Plugin>((resolve, reject) => {
             plug.performance.measureStart(name);
