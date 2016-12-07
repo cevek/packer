@@ -68,12 +68,10 @@ export class Plugin {
     }
 
     clear() {
-        // this.watcher.close();
-        // this.watcher = chokidar.watch('');
         this.jsEntries = [];
         this.jsScanner = new JSScanner(this);
         this.performance = new PerformanceMeasurer();
         this.fs.resetUpdatedFiles();
-        // this.stage = new Stage();
+        this.stage = new Stage();
     }
 }

@@ -85,11 +85,21 @@ export class JSScanner {
     }
 
     async scan(file: SourceFile) {
-        if (!file.updated || this.scanned.has(file)) {
+        if (this.scanned.has(file)) {
+            return;
+        }
+        this.scanned.set(file, true);
+        if (!file.updated) {
+            this.plug.stage.addFile(file);
+            if (file.imports) {
+                for (let i = 0; i < file.imports.length; i++) {
+                    const imprt = file.imports[i];
+                    await this.scan(imprt.file);
+                }
+            }
             return;
         }
 
-        this.scanned.set(file, true);
         let code = await this.plug.fs.readContent(file);
         const filename = this.plug.fs.relativeName(file);
         const imports = this.findImports(filename, code);
@@ -107,7 +117,6 @@ export class JSScanner {
             if (!imprt.file) {
                 throw new Error(`Cannot find module "${moduleResolvedUrl}" from ${this.plug.fs.relativeName(file)}`);
             }
-            this.plug.fs.readContent(imprt.file);
             newImports.push(imprt);
             // console.log('child scan', imprt.file.updated, imprt.file.extName, imprt.file.fullName);
             if (imprt.file.extName === 'js') {
