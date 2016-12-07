@@ -9,6 +9,13 @@ const integerToChar: {[n: number]: string} = {};
     integerToChar[i] = char/*.codePointAt(0)*/;
 });
 
+const enum Chars {
+    Colon = 44,
+    SemiColon = 59,
+    NewLine = 10,
+
+}
+
 export function sourcemapDiffCalc(str: string) {
     const len = str.length;
     var shift = 0;
@@ -29,7 +36,7 @@ export function sourcemapDiffCalc(str: string) {
 
     for (var i = 0; i < len; i++) {
         sym = str.charCodeAt(i);
-        if (sym === 59 /*;*/) {
+        if (sym === Chars.SemiColon) {
             segments++;
             shift = 0;
             value = 0;
@@ -37,7 +44,7 @@ export function sourcemapDiffCalc(str: string) {
             genLine++;
             genCol = 0;
             continue;
-        } else if (sym == 44 /*,*/) {
+        } else if (sym == Chars.Colon) {
             segments++;
             shift = 0;
             value = 0;
@@ -185,7 +192,7 @@ export class SourceMapWriter {
         let i = -1;
         let len = content.length;
         while (++i < len) {
-            if (content.charCodeAt(i) === 10 /*\n*/) {
+            if (content.charCodeAt(i) === Chars.NewLine) {
                 this.writeNextLine();
             }
         }
@@ -196,7 +203,7 @@ export class SourceMapWriter {
         let len = content.length;
         let count = 0;
         while (++i < len) {
-            if (content.charCodeAt(i) === 10 /*\n*/) {
+            if (content.charCodeAt(i) === Chars.NewLine) {
                 count++;
             }
         }
@@ -213,7 +220,7 @@ export class SourceMapWriter {
         let i = -1;
         let len = content.length;
         while (++i < len) {
-            if (content.charCodeAt(i) === 10 /*\n*/) {
+            if (content.charCodeAt(i) === Chars.NewLine) {
                 this.writeSegment();
                 this.writeNextLine();
 
@@ -228,6 +235,66 @@ export class SourceMapWriter {
         this.fileNum++;
     }
 
+
+    findLineCol(code: string, positions: number[]) {
+        let values: {line: number; col: number}[] = new Array(positions.length);
+        if (positions.length == 0) {
+            return values;
+        }
+        let pI = 0;
+        let currentPos = positions[pI];
+        let lineNum = 1;
+        let colNum = 0;
+        for (let i = 0; i <= code.length; i++) {
+            colNum++;
+            if (code.charCodeAt(i) === Chars.NewLine) {
+                lineNum++;
+                colNum = 0;
+            }
+            if (currentPos == i) {
+                values.push({line: lineNum, col: colNum});
+                pI++;
+                if (pI >= positions.length) {
+                    return values;
+                }
+            }
+        }
+    }
+
+    replace(code: string, from: number, length: number, replaceCode: string) {
+        const [start, end] = this.findLineCol(code, [from, from + length]);
+        let insertSegments = '';
+        let replaceLines = 0;
+        let replaceCol = 0;
+        for (let i = 0; i < replaceCode.length; i++) {
+            replaceCol++;
+            if (replaceCode.charCodeAt(i) === Chars.NewLine) {
+                replaceLines++;
+                insertSegments += ';';
+                replaceCol = 0;
+            }
+        }
+
+        insertSegments += '';
+
+        let mapLineNumber = 0;
+        for (let i = 0; i < this.mappings.length; i++) {
+            if (this.mappings.charCodeAt(i) == Chars.SemiColon) {
+                mapLineNumber++;
+            }
+            if (start.line === mapLineNumber) {
+                for (let j = i; j < this.mappings.length; j++) {
+                    const charCode = this.mappings.charCodeAt(i);
+                    if (this.mappings.charCodeAt(i) == Chars.SemiColon) {
+                        return;
+                    }
+                    if (charCode == 1) {
+                    }
+                }
+            }
+        }
+    }
+
     putExistSourceMap(content: string, sourceMap: SourceMap) {
         const sourcesCount = sourceMap.sources.length;
         for (let i = 0; i < sourcesCount; i++) {
@@ -240,7 +307,7 @@ export class SourceMapWriter {
         this.addSegment(sourceMap.mappings);
         const linesCount = this.countLines(content);
         const diff = sourcemapDiffCalc(sourceMap.mappings);
-        const diffLines = linesCount - diff.genLine
+        const diffLines = linesCount - diff.genLine;
         if (diffLines > 0) {
             for (let i = 0; i < diffLines; i++) {
                 this.writeNextLine();
