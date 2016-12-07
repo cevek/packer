@@ -14,6 +14,7 @@ export function copy(globFiles: Glob, pathModificator?: (filename: string) => st
             }
             const destFileName = plug.normalizeDestName(relativeName);
             const destFile = await plug.fs.createGeneratedFromFile(destFileName, file);
+            destFile.nameCanBeHashed = false;
             plug.stage.addFile(destFile);
         }
     });

@@ -8,6 +8,7 @@ export class SourceFile {
     updated = true;
     extName: string;
     isGenerated = false;
+    nameCanBeHashed = true;
     private _contentString: string;
     imports: Import[];
     isDir: boolean; //todo:
