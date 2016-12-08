@@ -1,6 +1,6 @@
 {
   "name": "webbuilder",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "",
   "main": "dist/packer.js",
   "typings": "dist/packer.d.ts",
