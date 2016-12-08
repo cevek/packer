@@ -134,6 +134,7 @@ export function ts(options: TS.CompilerOptions = {}) {
 
         // skip if no tsx?|js files changed
         if (cachedTSFiles.length && cachedTSFiles.every(file => !file.updated)) {
+            configFile.createdFiles.forEach(file => plug.stage.addFile(file));
             return;
         }
 
@@ -183,7 +184,7 @@ export function ts(options: TS.CompilerOptions = {}) {
 
             cache.compilerHost.writeFile = (file, data) => {
                 // console.log('put', file);
-                const dist = plug.fs.createGeneratedFile(file, data);
+                const dist = plug.fs.createGeneratedFile(file, data, configFile);
                 cache.generatedFiles.push(dist);
             };
         }

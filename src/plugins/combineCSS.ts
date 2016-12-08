@@ -19,6 +19,10 @@ export function combineCSS(outfile: string) {
                 getContent: async file => plug.fs.readContent(file),
                 superFooter: '',
             });
+        } else {
+            if (files.length) {
+                files[0].createdFiles.forEach(f => plug.stage.addFile(f));
+            }
         }
     });
 }

@@ -4,6 +4,8 @@ export function conditional(cond: () => boolean) {
         return (plug: Plugin) => {
             if (cond()) {
                 return plugin(plug);
+            } else {
+                return plug;
             }
         };
     }

@@ -104,6 +104,10 @@ export function combineJS(entryFilename: string, outfile: string) {
 
                 superFooter,
             });
+        } else {
+            if (files.length) {
+                files[0].createdFiles.forEach(f => plug.stage.addFile(f));
+            }
         }
     });
 }

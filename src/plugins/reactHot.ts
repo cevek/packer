@@ -28,7 +28,7 @@ function reactHotUpdater() {
 }
 
 setTimeout(reactHotUpdater, 1000);
-`);
+`, null);
         await plug.jsScanner.scan(file);
         plug.jsEntries.unshift(file);
     });

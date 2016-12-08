@@ -77,7 +77,7 @@ export function sass(globFiles?: Glob, options: SassOptions = {}) {
             options.outFile = cssName;
             options.data = await plug.fs.readContent(file);
             const result = await render(options);
-            const cssFile = plug.fs.createGeneratedFile(cssName, result.css);
+            const cssFile = plug.fs.createGeneratedFile(cssName, result.css, file);
             file.imports = [];
             plug.stage.addFile(cssFile);
             for (let j = 0; j < result.stats.includedFiles.length; j++) {
@@ -91,6 +91,12 @@ export function sass(globFiles?: Glob, options: SassOptions = {}) {
                     endPos: null
                 });
             }
+        }
+
+        const nonUpdatedFiles = sassFiles.filter(file => !file.updated);
+        for (let i = 0; i < nonUpdatedFiles.length; i++) {
+            const file = nonUpdatedFiles[i];
+            file.createdFiles.forEach(f => plug.stage.addFile(f));
         }
     });
 }

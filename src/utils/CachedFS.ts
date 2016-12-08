@@ -57,7 +57,7 @@ export class CachedFS {
         return this.nodes.get(filename);
     }
 
-    createGeneratedFile(filename: string, content: Buffer | string) {
+    createGeneratedFile(filename: string, content: Buffer | string, createdBy: SourceFile) {
         let file = this.getFromCache(filename);
         if (file) {
             file.setContent(content);
@@ -65,15 +65,18 @@ export class CachedFS {
             //throw new Error('File ' + filename + ' already exists in cache');
         }
         file = new SourceFile(filename, false);
+        if (createdBy) {
+            createdBy.createdFiles.add(file);
+        }
         file.setContent(content);
         file.isGenerated = true;
         this.nodes.set(filename, file);
         return file;
     }
 
-    async createGeneratedFromFile(filename: string, originalfile: SourceFile) {
+    async createGeneratedFromFile(filename: string, originalfile: SourceFile, createdBy: SourceFile) {
         await this.readContent(originalfile);
-        return this.createGeneratedFile(filename, originalfile.content);
+        return this.createGeneratedFile(filename, originalfile.content, createdBy);
     }
 
     findOrCreate(filename: string, isDir = false) {

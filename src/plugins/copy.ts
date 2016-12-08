@@ -13,7 +13,7 @@ export function copy(globFiles: Glob, pathModificator?: (filename: string) => st
                 relativeName = pathModificator(relativeName);
             }
             const destFileName = plug.normalizeDestName(relativeName);
-            const destFile = await plug.fs.createGeneratedFromFile(destFileName, file);
+            const destFile = await plug.fs.createGeneratedFromFile(destFileName, file, file);
             destFile.nameCanBeHashed = false;
             plug.stage.addFile(destFile);
         }

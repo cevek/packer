@@ -43,7 +43,7 @@ export function postcss(globFiles?: Glob, plugins: Postcss.Plugin<any>[] = [], o
             options.to = file.fullName;
             const result = await p.process(cssData, options);
 
-            const cssFile = plug.fs.createGeneratedFile(cssName, result.css);
+            const cssFile = plug.fs.createGeneratedFile(cssName, result.css, file);
             file.imports = [];
             plug.stage.addFile(cssFile);
 
@@ -61,6 +61,12 @@ export function postcss(globFiles?: Glob, plugins: Postcss.Plugin<any>[] = [], o
                     endPos: null
                 });
             }*/
+        }
+
+        const nonUpdatedFiles = cssFiles.filter(file => !file.updated);
+        for (let i = 0; i < nonUpdatedFiles.length; i++) {
+            const file = nonUpdatedFiles[i];
+            file.createdFiles.forEach(f => plug.stage.addFile(f));
         }
     });
 }

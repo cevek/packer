@@ -12,6 +12,11 @@ export class SourceFile {
     private _contentString: string;
     imports: Import[];
     isDir: boolean; //todo:
+    private _createdFiles: Set<SourceFile>;
+
+    get createdFiles() {
+        return this._createdFiles || (this._createdFiles = new Set());
+    }
 
     getContentString() {
         return this._contentString ? this._contentString : (this._contentString = this.content.toString());
