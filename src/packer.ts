@@ -13,6 +13,7 @@ export {combineCSS} from "./plugins/combineCSS";
 export {copy} from "./plugins/copy";
 export {hash} from "./plugins/hash";
 export {conditional} from "./utils/conditional";
+export {replaceCode} from "./plugins/replaceCode";
 
 export interface PackerOptions {
     context: string;
