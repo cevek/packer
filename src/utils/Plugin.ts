@@ -19,14 +19,12 @@ export class Plugin {
     emittedFiles: Set<SourceFile>;
     jsScanner:JSScanner;
 
-    //todo: remove from here
-    watcher: fs.FSWatcher = chokidar.watch('');
     private cacheData = new Map<string, any>();
 
 
     constructor(public watchMode: boolean, options: PackerOptions) {
         this.options = options;
-        this.fs = new CachedFS(this.options.context, this.watcher);
+        this.fs = new CachedFS(this.options.context, this.watchMode);
         this.performance = new PerformanceMeasurer();
         this.reset();
     }
@@ -86,7 +84,6 @@ export class Plugin {
         this.emittedFiles = null;
         this.changedFiles = null;
         this.fs = null;
-        this.watcher = null;
         this.cacheData = null;
     }
 }

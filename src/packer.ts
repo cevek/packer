@@ -59,7 +59,7 @@ export class Packer {
     }
 
     async run(options: {watch?: boolean} = {}) {
-        this.plug = new Plugin(false, this.options);
+        this.plug = new Plugin(options.watch, this.options);
         if (options.watch) {
             await this.watchRunner();
         } else {
@@ -116,7 +116,7 @@ export class Packer {
                 this.timeout = setTimeout(async() => {
                     this.plug.reset();
                     logger.clear();
-                    this.plug.watcher.removeListener('change', listener);
+                    this.plug.fs.watcher.removeListener('change', listener);
                     for (let i = 0; i < changedFiles.length; i++) {
                         const filename = changedFiles[i];
                         const file = this.plug.fs.findOrCreate(filename);
@@ -127,7 +127,7 @@ export class Packer {
                 }, 50);
             }
         };
-        this.plug.watcher.on('change', listener);
+        this.plug.fs.watcher.on('change', listener);
     }
 
     private async exec() {

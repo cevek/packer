@@ -4,6 +4,7 @@ import {Stats, FSWatcher} from "fs";
 import * as path from "path";
 import {SourceFile} from "./SourceFile";
 import {logger} from "./logger";
+import chokidar = require('chokidar');
 
 export interface GlobOptions {
     cwd?: string;
@@ -21,17 +22,14 @@ const mkdirpAsync = promisify(require('mkdirp'));
 export class CachedFS {
     // null - file doesn't exist
     private nodes = new Map<string, SourceFile>();
+
+    watcher: fs.FSWatcher = this.watchMode ? chokidar.watch('') : null;
     private watchedFiles = new Set<SourceFile>();
 
     useSyncMethods = true;
     skipNodeModulesWatch = true;
-    private context: string;
-    private watcher: FSWatcher;
 
-    constructor(context: string, watcher: FSWatcher) {
-        this.context = context;
-        this.watcher = watcher;
-    }
+    constructor(private context: string, private watchMode: boolean) {}
 
     private createStat(filename: string, stats: Stats) {
         const file = new SourceFile(filename, stats.isDirectory());
@@ -219,9 +217,11 @@ export class CachedFS {
     }
 
     watch(file: SourceFile) {
-        if (!this.skipNodeModulesWatch || !file.fullName.match(/\/node_modules\//)) {
-            this.watcher.add(file.fullName);
-            this.watchedFiles.add(file);
+        if (this.watchMode) {
+            if (!this.skipNodeModulesWatch || !file.fullName.match(/\/node_modules\//)) {
+                this.watcher.add(file.fullName);
+                this.watchedFiles.add(file);
+            }
         }
     }
 
