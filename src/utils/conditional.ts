@@ -5,7 +5,7 @@ export function conditional(cond: () => boolean) {
             if (cond()) {
                 return plugin(plug);
             } else {
-                return plug;
+                return Promise.resolve(plug);
             }
         };
     }
