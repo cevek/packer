@@ -23,6 +23,7 @@ export interface PackerOptions {
 }
 
 export interface PackerResult {
+    runIteration: number;
     emittedFiles: string[];
     changedFiles: string[];
     emittedJSFiles: string[];
@@ -32,6 +33,7 @@ export interface PackerResult {
 export class Packer {
     protected plug: Plugin;
     public options: PackerOptions;
+    private runIteration = 1;
 
     constructor(options: PackerOptions, protected executor: (promise: Promise<Plugin>) => Promise<Plugin>) {
         this.processOptions(options);
@@ -154,6 +156,7 @@ export class Packer {
         const changedFiles = [...this.plug.changedFiles];
         const emittedFiles = [...this.plug.emittedFiles];
         const result: PackerResult = {
+            runIteration: this.runIteration++,
             changedFiles: changedFiles.map(file => this.plug.relativeToDest(file)),
             emittedFiles: emittedFiles.map(file => this.plug.relativeToDest(file)),
             emittedJSFiles: [],
@@ -169,13 +172,13 @@ export class Packer {
 
 export function plugin(name: string, fn: (plug: Plugin) => Promise<void>) {
     return (plug: Plugin) => {
-        return new Promise<Plugin>((resolve, reject) => {
+        return new FastPromise<Plugin>((resolve, reject) => {
             plug.performance.measureStart(name);
             fn(plug).then(() => {
                 plug.performance.measureEnd(name);
                 resolve(plug);
             }, reject);
-        });
+        }) as Promise<Plugin>;
     }
 }
 
