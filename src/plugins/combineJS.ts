@@ -6,7 +6,8 @@ import {combiner} from "../utils/combiner";
 import {SourceFile, Import} from "../utils/SourceFile";
 
 const superHeader = `
-(function () { 
+
+(function (global, rootRequire, rootModule, rootRequire) { 
 var __packerCache = [];
 function require(id) {
     var m = __packerCache[id];
@@ -22,9 +23,11 @@ function __packer(mId, executor) {
 var process = {
     env: {
         NODE_ENV: ''
-    }
+    }    
 };
-var global = window;\n`;
+`;
+
+const superFooter = `\n})(typeof window == 'object' ? window : process, typeof require != 'undefined' && require, typeof module != 'undefined' && module, typeof require != 'undefined' && require)`;
 
 
 export function combineJS(entryFilename: string, outfile: string) {
@@ -37,7 +40,7 @@ export function combineJS(entryFilename: string, outfile: string) {
             plug.printAllGeneratedFiles();
             throw new Error(`entryFilename ${entryFilename} doesn't exists`);
         }
-        plug.jsEntries.push(entryFile);
+        // plug.jsEntries.push(entryFile);
         // console.timeEnd('JSScanner');
 
         const numberHash = new Map<SourceFile, number>();
@@ -77,12 +80,14 @@ export function combineJS(entryFilename: string, outfile: string) {
             return code;
         }
 
-        let superFooter = '';
+        let localSuperFooter = '';
         for (let file of plug.jsEntries) {
             numberImports(file);
-            superFooter += `\nrequire(${numberHash.get(file)});`;
+            localSuperFooter = `\nrequire(${numberHash.get(file)});`;
         }
-        superFooter += '\n})()';
+        numberImports(entryFile);
+        localSuperFooter = `\nrootModule.exports = require(${numberHash.get(entryFile)});`;
+        localSuperFooter += superFooter;
 
         const files = [...numberHash.keys()];
         const hasUpdates = files.some(file => file.extName === 'js' && file.updated);
@@ -102,7 +107,7 @@ export function combineJS(entryFilename: string, outfile: string) {
                 getContent: async file => file.extName === 'js' ? replaceImportsWithoutChangeLength(file.imports, await plug.fs.readContent(file)) : '/* no js module */',
                 getFooter: file => '\n});\n',
 
-                superFooter,
+                superFooter: localSuperFooter,
             });
         } else {
             if (files.length) {
