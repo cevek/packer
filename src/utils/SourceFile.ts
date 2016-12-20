@@ -68,4 +68,8 @@ export class Import {
     module: string;
     startPos: number;
     endPos: number;
+    startLine: number;
+    startColumn: number;
+    endLine: number;
+    endColumn: number;
 }
