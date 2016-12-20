@@ -20,6 +20,8 @@ export interface PackerOptions {
     dest: string;
     sourceMap?: boolean;
     alias?: {[module: string]: string};
+    maxInlineSize?: number;
+    publicPath?: string;
 }
 
 export interface PackerResult {
@@ -45,6 +47,8 @@ export class Packer {
             sourceMap: true,
             dest: 'dist',
             alias: null,
+            maxInlineSize: 0,
+            publicPath: '',
         };
         if (options.context) {
             defaultOptions.context = path.resolve(options.context);
@@ -56,6 +60,12 @@ export class Packer {
         }
         if (typeof options.sourceMap === 'boolean') {
             defaultOptions.sourceMap = options.sourceMap;
+        }
+        if (typeof options.maxInlineSize === 'number') {
+            defaultOptions.maxInlineSize = options.maxInlineSize;
+        }
+        if (typeof options.publicPath === 'string') {
+            defaultOptions.publicPath = options.publicPath;
         }
         defaultOptions.alias = options.alias;
         this.options = defaultOptions;
