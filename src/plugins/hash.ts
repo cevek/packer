@@ -1,6 +1,7 @@
 import {plugin} from "../packer";
 import {Plugin} from "../utils/Plugin";
 import * as path from "path";
+import {makeHash} from "../utils/makeHash";
 
 export function hash(predicator?: (filename: string) => boolean) {
     return plugin('hash', async(plug: Plugin) => {
@@ -17,16 +18,3 @@ export function hash(predicator?: (filename: string) => boolean) {
     });
 }
 
-
-//https://github.com/darkskyapp/string-hash
-function makeHash(str: string) {
-    let hash = 5381;
-    let i = str.length;
-    while (i) {
-        hash = (hash * 33) ^ str.charCodeAt(--i)
-    }
-    /* JavaScript does bitwise operations (like XOR, above) on 32-bit signed
-     * integers. Since we want the results to be always positive, convert the
-     * signed int to an unsigned by doing an unsigned bitshift. */
-    return hash >>> 0;
-}
