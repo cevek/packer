@@ -45,6 +45,7 @@ export class SourceFile {
                 this.content = new Buffer(content);
                 this._contentString = content;
                 this.updated = true;
+                this.imports = null;
             }
         } else {
             const string = content.toString();
@@ -52,6 +53,7 @@ export class SourceFile {
                 this.content = content;
                 this._contentString = string;
                 this.updated = true;
+                this.imports = null;
             }
         }
     }
