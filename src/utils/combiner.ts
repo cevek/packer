@@ -18,8 +18,7 @@ export interface CombinerOptions {
 export async function combiner(params: CombinerOptions) {
     const {plug, superHeader, superFooter, getContent, getFooter, getHeader, files, outfile, type} = params;
     let bulk = params.superHeader;
-    const fullOutfile = params.plug.normalizeDestName(outfile);
-    const dirname = path.dirname(fullOutfile);
+    const dirname = path.dirname(outfile);
     const compileSourceMaps = plug.options.sourceMap;
 
     const smw = new SourceMapWriter();
@@ -71,7 +70,7 @@ export async function combiner(params: CombinerOptions) {
     if (compileSourceMaps) {
         smw.skipCode(superFooter);
         const sourceMap = smw.toSourceMap();
-        const mapFile = plug.fs.createGeneratedFile(fullOutfile + '.map', sourceMap.toString(), files[0]);
+        const mapFile = plug.fs.createGeneratedFile(outfile + '.map', sourceMap.toString(), files[0]);
         plug.stage.addFile(mapFile);
         if (type == 'js') {
             bulk += '\n//# sourceMappingURL=' + mapFile.getBasename();
@@ -80,6 +79,6 @@ export async function combiner(params: CombinerOptions) {
             bulk += '\n/*# sourceMappingURL=' + mapFile.getBasename() + '*/';
         }
     }
-    const file = plug.fs.createGeneratedFile(fullOutfile, bulk, files[0]);
+    const file = plug.fs.createGeneratedFile(outfile, bulk, files[0]);
     plug.stage.addFile(file);
 }
