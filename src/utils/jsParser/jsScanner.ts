@@ -3,14 +3,15 @@ import {promisify} from "../promisify";
 import {Plugin} from "../Plugin";
 import {SourceFile, Import} from "../SourceFile";
 import {logger} from "../logger";
+import {SourceError} from "../SourceError";
 
 const _resolve = promisify<string>(require('resolve'));
 
-async function resolve(file: SourceFile, module: string, options: ResolveOptions, plug: Plugin): Promise<string> {
+async function resolve(file: SourceFile, imprt: Import, options: ResolveOptions, plug: Plugin): Promise<string> {
     try {
-        return await _resolve(module, options);
+        return await _resolve(imprt.module, options);
     } catch (e) {
-        throw new Error(`Cannot find module "${module}" from ${plug.fs.relativeName(file)}`);
+        throw new SourceError(`Cannot find module "${imprt.module}"`, file, imprt.startLine, imprt.startColumn, imprt.endColumn, imprt.endColumn);
     }
 }
 
@@ -61,10 +62,18 @@ export class JSScanner {
                 // todo: check abc. require ("foo");
                 if (end - start === 7 && code[start] === 'r' && code.substring(start, end) === 'require' && code[end] == '(' && code[start - 1] !== '.' && r[i + 3] === 2 /*string*/) {
                     if (code[r[i + 5] + 1] === ')') {
+                        const startPos = r[i + 4] - 1;
+                        const endPos = r[i + 5] + 1;
+                        // const startLineCol = getLineCol(code, startPos);
+                        // const endLineCol = getLineCol(code, endPos);
                         imports.push({
                             file: null,
-                            startPos: r[i + 4] - 1,
-                            endPos: r[i + 5] + 1,
+                            startPos,
+                            endPos,
+                            startLine: 0,//startLineCol.line,
+                            startColumn: 0,//startLineCol.col,
+                            endLine: 0,//endLineCol.line,
+                            endColumn: 0,//endLineCol.col,
                             module: this.replaceAliases(code.substring(r[i + 4], r[i + 5]))
                         });
                     }
@@ -107,7 +116,7 @@ export class JSScanner {
         const newImports: Import[] = [];
         for (let i = 0; i < imports.length; i++) {
             const imprt = imports[i];
-            const moduleResolvedUrl = await resolve(file, imprt.module, {
+            const moduleResolvedUrl = await resolve(file, imprt, {
                 basedir: file.dirName,
                 readFile: this.readFile,
                 isFile: this.isFile
@@ -115,7 +124,7 @@ export class JSScanner {
 
             imprt.file = this.plug.fs.getFromCache(moduleResolvedUrl);
             if (!imprt.file) {
-                throw new Error(`Cannot find module "${moduleResolvedUrl}" from ${this.plug.fs.relativeName(file)}`);
+                throw new SourceError(`Cannot find file "${moduleResolvedUrl}"`, file, imprt.startLine, imprt.startColumn, imprt.endColumn, imprt.endColumn);
             }
             newImports.push(imprt);
             // console.log('child scan', imprt.file.updated, imprt.file.extName, imprt.file.fullName);
