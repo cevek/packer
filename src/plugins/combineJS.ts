@@ -4,6 +4,9 @@ import {padRight} from "../utils/common";
 import {Plugin} from "../utils/Plugin";
 import {combiner} from "../utils/combiner";
 import {SourceFile, Import} from "../utils/SourceFile";
+import {base64Url} from "../utils/base64Url";
+import {makeHash} from "../utils/makeHash";
+import * as path from "path";
 
 const superHeader = `
 
@@ -33,6 +36,8 @@ const superFooter = `\n})(typeof window == 'object' ? window : process, typeof r
 export function combineJS(entryFilename: string, outfile: string) {
     return plugin('combineJS', async (plug: Plugin) => {
         // console.time('JSScanner');
+        outfile = plug.normalizeDestName(outfile);
+
         const jsScanner = new JSScanner(plug);
         entryFilename = plug.fs.normalizeName(entryFilename);
         const entryFile = plug.fs.getFromCache(entryFilename);
@@ -46,7 +51,7 @@ export function combineJS(entryFilename: string, outfile: string) {
         const numberHash = new Map<SourceFile, number>();
         let num = 0;
 
-        async function numberImports(file: SourceFile) {
+        function numberImports(file: SourceFile) {
             // await jsScanner.scan(file);
             if (numberHash.has(file)) {
                 return;
@@ -80,6 +85,19 @@ export function combineJS(entryFilename: string, outfile: string) {
             return code;
         }
 
+        async function nonJsFileContent(file: SourceFile) {
+            const content = await plug.fs.readContent(file);
+            if (plug.options.maxInlineSize >= content.length) {
+                return 'module.exports = "' + base64Url(file.extName, content) + '"';
+            }
+
+            const relativeName = (makeHash(file.fullName) + makeHash(content)).toString(33) + '.' + file.extName;
+            const destFileName = plug.normalizeDestName(relativeName);
+            const destFile = await plug.fs.createGeneratedFromFile(destFileName, file, file);
+            plug.stage.addFile(destFile);
+            return 'module.exports = "' + plug.options.publicPath + path.relative(outfile, destFileName).replace(/..\//g, '') + '"';
+        }
+
         let localSuperFooter = '';
         for (let file of plug.jsEntries) {
             numberImports(file);
@@ -104,7 +122,9 @@ export function combineJS(entryFilename: string, outfile: string) {
                 superHeader,
 
                 getHeader: file => `__packer(${numberHash.get(file)}, function(require, module, exports) \{\n`,
-                getContent: async file => file.extName === 'js' ? replaceImportsWithoutChangeLength(file.imports, await plug.fs.readContent(file)) : '/* no js module */',
+                getContent: async file => file.extName === 'js'
+                    ? replaceImportsWithoutChangeLength(file.imports, await plug.fs.readContent(file))
+                    : await nonJsFileContent(file),
                 getFooter: file => '\n});\n',
 
                 superFooter: localSuperFooter,
