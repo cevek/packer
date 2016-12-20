@@ -6,8 +6,10 @@ import * as path from 'path';
 export function copy(globFiles: Glob, pathModificator?: (filename: string) => string) {
     return plugin('copy', async(plug: Plugin) => {
         const files = await plug.fs.findFiles(globFiles);
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
+        const changedFiles = files.filter(file => file.updated);
+        const unchangedFiles = files.filter(file => !file.updated);
+        for (let i = 0; i < changedFiles.length; i++) {
+            const file = changedFiles[i];
             let relativeName = path.relative(plug.options.context, file.fullName);
             if (pathModificator) {
                 relativeName = pathModificator(relativeName);
@@ -17,5 +19,11 @@ export function copy(globFiles: Glob, pathModificator?: (filename: string) => st
             destFile.nameCanBeHashed = false;
             plug.stage.addFile(destFile);
         }
+
+        for (let i = 0; i < unchangedFiles.length; i++) {
+            const file = unchangedFiles[i];
+            file.createdFiles.forEach(f => plug.stage.addFile(f));
+        }
     });
 }
+
