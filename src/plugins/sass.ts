@@ -1,14 +1,15 @@
-import '../helpers';
-import path = require('path');
+import "../helpers";
 import {promisify} from "../utils/promisify";
 import {Glob} from "../utils/fs";
 import {plugin} from "../packer";
 import {Plugin} from "../utils/Plugin";
+import path = require('path');
+import {SourceError} from "../utils/SourceError";
 
 const render: (options: SassOptions) => Promise<SassResult> = promisify(require('node-sass').render);
 // const sassRender: (options: SassOptions) => Promise<SassResult> = promisify(require('node-sass').render);
 export interface SassImporter {
-    (url: string, prev: string, done: (data: { file: string; contents: string; }) => void): void;
+    (url: string, prev: string, done: (data: {file: string; contents: string;}) => void): void;
 }
 export interface SassOptions {
     file?: string;
@@ -17,7 +18,7 @@ export interface SassOptions {
     sourceMap?: boolean | string;
     outFile?: string;
     importer?: SassImporter | SassImporter[];
-    functions?: { [key: string]: Function };
+    functions?: {[key: string]: Function};
     indentedSyntax?: boolean;
     indentType?: string;
     indentWidth?: number;
@@ -41,6 +42,14 @@ export interface SassResult {
         duration: number;
         includedFiles: string[];
     }
+}
+
+interface SassError {
+    message: string;
+    line: number;
+    column: number
+    status: number;
+    file: string;
 }
 
 export function sass(globFiles?: Glob, options: SassOptions = {}) {
@@ -76,7 +85,15 @@ export function sass(globFiles?: Glob, options: SassOptions = {}) {
             options.file = file.fullName;
             options.outFile = cssName;
             options.data = await plug.fs.readContent(file);
-            const result = await render(options);
+            let result: SassResult;
+            try {
+                result = await render(options);
+            } catch (e) {
+                const err = e as SassError;
+                const file = plug.fs.findOrCreate(err.file);
+                plug.fs.watch(file);
+                throw new SourceError(err.message, file, err.line, err.column);
+            }
             const cssFile = plug.fs.createGeneratedFile(cssName, result.css, file);
             file.imports = [];
             plug.stage.addFile(cssFile);
@@ -88,7 +105,11 @@ export function sass(globFiles?: Glob, options: SassOptions = {}) {
                     file: depFile,
                     module: null,
                     startPos: null,
-                    endPos: null
+                    endPos: null,
+                    startLine: null,
+                    startColumn: null,
+                    endLine: null,
+                    endColumn: null,
                 });
             }
         }
