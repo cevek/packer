@@ -64,7 +64,7 @@ export class Packer {
     async run(options: {watch?: boolean} = {}) {
         this.plug = new Plugin(options.watch, this.options);
         if (options.watch) {
-            await this.watchRunner();
+            await this.watchRunner([]);
         } else {
             await this.runOnce();
         }
@@ -88,7 +88,7 @@ export class Packer {
         this.plug.destroy();
     }
 
-    private async watchRunner() {
+    private async watchRunner(changedFiles: string[]) {
         try {
             this.result = new FastPromise<PackerResult>();
             this.plug.performance.measureStart('overall');
@@ -103,10 +103,9 @@ export class Packer {
             logger.info(`Incremental build done after ${dur | 0}ms\n`);
             this.result.resolve(this.getCompilationResult());
         } catch (e) {
-            logger.error(e instanceof Error ? e.stack : e);
+            logger.error('Error: ' + (e instanceof Error ? e.message : e));
         }
         let timerRunned = false;
-        const changedFiles: string[] = [];
         clearTimeout(this.timeout);
         let listener = (filename: string) => {
             //hack
@@ -116,21 +115,25 @@ export class Packer {
             changedFiles.push(filename);
             if (!timerRunned) {
                 timerRunned = true;
-                this.timeout = setTimeout(async() => {
-                    this.plug.reset();
-                    logger.clear();
+                this.timeout = setTimeout(async () => {
+                    await this.watchRunnerUpdateFiles(changedFiles);
+                    await this.watchRunner(changedFiles);
                     this.plug.fs.watcher.removeListener('change', listener);
-                    for (let i = 0; i < changedFiles.length; i++) {
-                        const filename = changedFiles[i];
-                        const file = this.plug.fs.findOrCreate(filename);
-                        await this.plug.fs.readContent(file, true);
-                        logger.info('Changed ' + this.plug.fs.relativeName(file));
-                    }
-                    await this.watchRunner();
                 }, 50);
             }
         };
         this.plug.fs.watcher.on('change', listener);
+    }
+
+    private async watchRunnerUpdateFiles(changedFiles: string[]) {
+        this.plug.reset();
+        logger.clear();
+        while (changedFiles.length) {
+            const filename = changedFiles.shift();
+            const file = this.plug.fs.findOrCreate(filename);
+            await this.plug.fs.readContent(file, true);
+            logger.info('Changed ' + this.plug.fs.relativeName(file));
+        }
     }
 
     private async exec() {
