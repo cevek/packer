@@ -3,9 +3,14 @@ const enum Symbols {
     ASTERIKCS = 42,
 }
 
+export interface CSSParseResult {
+    start: number;
+    end: number;
+    url: string;
+}
 export function parseCSSUrl(css: string) {
     const regexp = /[\s:,%]url\(\s*["']?(.*?)["']?\s*\)/ig;
-    const results: {start: number, end: number, url: string}[] = [];
+    const results:CSSParseResult[] = [];
     let result: RegExpExecArray;
     let i = 0;
     while (result = regexp.exec(css)) {
@@ -27,47 +32,47 @@ export function parseCSSUrl(css: string) {
             }
         }
         if (!inComment) {
-            results.push({start: result.index, end: result.index + result[1].length, url: result[1]});
+            results.push({start: result.index + 1, end: result.index + result[0].length, url: result[1]});
         }
     }
     return results;
 }
 
 /*
-TESTS
+ TESTS
 
-console.log(parseCSSUrl(`
-b{background:url(data:a0);}
-a{background: url(a1);}
+ console.log(parseCSSUrl(`
+ b{background:url(data:a0);}
+ a{background: url(a1);}
 
-b{background: url("a2");}
+ b{background: url("a2");}
 
-b{background:Url('a3');}
+ b{background:Url('a3');}
 
-/!*comment0*!/
+ /!*comment0*!/
 
-b{background: url(  "a4"
-);}
+ b{background: url(  "a4"
+ );}
 
-/!*b{background: url(/comment1);}*!/
+ /!*b{background: url(/comment1);}*!/
 
-b{background: url(
-a5     );}
+ b{background: url(
+ a5     );}
 
-/!*
-b{background: url(/comment2);}
-*!/
+ /!*
+ b{background: url(/comment2);}
+ *!/
 
-b{background: url(
-a6     );}
+ b{background: url(
+ a6     );}
 
-b{background: 10%url("a7");}
+ b{background: 10%url("a7");}
 
-b{background:url( 'a8'),url(a9 );}
-`));
+ b{background:url( 'a8'),url(a9 );}
+ `));
 
 
-should be
+ should be
  [ { start: 13, end: 20, url: 'data:a0' },
  { start: 42, end: 44, url: 'a1' },
  { start: 67, end: 69, url: 'a2' },
@@ -80,4 +85,4 @@ should be
  { start: 341, end: 343, url: 'a9' } ]
 
 
-*/
+ */
