@@ -1,13 +1,88 @@
 import {plugin} from "../packer";
 import {Plugin} from "../utils/Plugin";
 import {combiner} from "../utils/combiner";
+import {SourceFile} from "../utils/SourceFile";
+import {parseCSSUrl} from "../utils/parseCSSUrl";
+import {base64Url} from "../utils/base64Url";
+import {makeHash} from "../utils/makeHash";
+import * as path from "path";
+import {logger} from "../utils/logger";
 
+interface CombineCSSCache {
+    urlData: Map<SourceFile, string>;
+}
 export function combineCSS(outfile: string) {
     return plugin('combineCSS', async (plug: Plugin) => {
-        const fullOutfile = plug.normalizeDestName(outfile);
-        const files = plug.stage.list().filter(file => file.extName === 'css' && file.fullName !== fullOutfile);
+        outfile = plug.normalizeDestName(outfile);
+        const cache = plug.getCache('combineCSS') as CombineCSSCache;
+        if (!cache.urlData) {
+            cache.urlData = new Map();
+        }
+        const files = plug.stage.list().filter(file => file.extName === 'css' && file.fullName !== outfile);
+        files.forEach(file => {
+            if (file.imports) {
+                const someImportsUpdated = file.imports.some(imprt => imprt.file.updated);
+                if (someImportsUpdated) {
+                    file.updated = true;
+                }
+            }
+        });
         const hasUpdates = files.some(file => file.updated);
         // console.log(hasUpdates, files.length);
+        async function replaceUrl(cssFile: SourceFile) {
+            const content = await plug.fs.readContent(cssFile);
+            const results = parseCSSUrl(content);
+            let newContent = content;
+            let offset = 0;
+            for (let i = 0; i < results.length; i++) {
+                const result = results[i];
+                const url = (result.url);
+                if (/^https?:/i.test(url) || /^data:/.test(url)) {
+                    continue;
+                }
+                const abcUrl = plug.normalizeName(url);
+                const urlFile = await plug.fs.tryFile(abcUrl);
+                if (!urlFile) {
+                    //todo:
+                    logger.warning(`Cannot find url(${url}) in ${outfile}`);
+                    continue;
+                }
+                let newUrl = cache.urlData.get(urlFile);
+                if (urlFile.updated || !newUrl) {
+                    const urlContent = await plug.fs.readContent(urlFile);
+                    if (plug.options.maxInlineSize >= urlContent.length) {
+                        newUrl = base64Url(urlFile.extName, urlContent);
+                    } else {
+                        const relativeName = (makeHash(urlFile.fullName) + makeHash(urlContent)).toString(33) + '.' + urlFile.extName;
+                        const destFileName = plug.normalizeDestName(relativeName);
+                        const destFile = await plug.fs.createGeneratedFromFile(destFileName, cssFile, cssFile);
+                        plug.stage.addFile(destFile);
+                        destFile.nameCanBeHashed = false;
+                        newUrl = plug.options.publicPath + path.relative(outfile, destFileName).replace(/..\//g, '');
+                    }
+                    if (!cssFile.imports) {
+                        cssFile.imports = [];
+                    }
+                    cssFile.imports.push({
+                        module: url,
+                        file: urlFile,
+                        startLine: null,
+                        startColumn: null,
+                        endLine: null,
+                        endColumn: null,
+                        startPos: null,
+                        endPos: null,
+                    });
+
+                    newUrl = `url("${newUrl}")`;
+                    cache.urlData.set(urlFile, newUrl);
+                }
+
+                newContent = newContent.substr(0, offset + result.start) + newUrl + newContent.substr(offset + result.end);
+                offset += newUrl.length - (result.end - result.start);
+            }
+            return newContent;
+        }
         if (hasUpdates) {
             await combiner({
                 type: 'css',
@@ -16,7 +91,7 @@ export function combineCSS(outfile: string) {
                 files,
                 superHeader: '',
                 getFooter: file => '\n',
-                getContent: async file => plug.fs.readContent(file),
+                getContent: replaceUrl,
                 superFooter: '',
             });
         } else {
