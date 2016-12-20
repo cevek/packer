@@ -94,6 +94,7 @@ export function combineJS(entryFilename: string, outfile: string) {
             const relativeName = (makeHash(file.fullName) + makeHash(content)).toString(33) + '.' + file.extName;
             const destFileName = plug.normalizeDestName(relativeName);
             const destFile = await plug.fs.createGeneratedFromFile(destFileName, file, file);
+            destFile.nameCanBeHashed = false;
             plug.stage.addFile(destFile);
             return 'module.exports = "' + plug.options.publicPath + path.relative(outfile, destFileName).replace(/..\//g, '') + '"';
         }
@@ -108,6 +109,16 @@ export function combineJS(entryFilename: string, outfile: string) {
         localSuperFooter += superFooter;
 
         const files = [...numberHash.keys()];
+
+        files.forEach(file => {
+            if (file.imports) {
+                const someNoneJsImportsUpdated = file.imports.some(imprt => imprt.file.extName !== 'js' && imprt.file.updated);
+                if (someNoneJsImportsUpdated) {
+                    file.updated = true;
+                }
+            }
+        });
+
         const hasUpdates = files.some(file => file.extName === 'js' && file.updated);
         if (hasUpdates) {
             for (let i = 0; i < files.length; i++) {
