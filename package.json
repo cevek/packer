@@ -1,6 +1,6 @@
 {
   "name": "webbuilder",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "",
   "main": "dist/packer.js",
   "typings": "dist/packer.d.ts",
@@ -8,6 +8,7 @@
   "author": "cevek",
   "license": "ISC",
   "dependencies": {
+    "@types/babel-core": "^6.7.14",
     "@types/chokidar": "^1.4.29",
     "@types/node": "^6.0.46",
     "bluebird": "^3.4.6",
