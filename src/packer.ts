@@ -25,6 +25,7 @@ export interface PackerOptions {
 }
 
 export interface PackerResult {
+    plugin: Plugin;
     runIteration: number;
     emittedFiles: string[];
     changedFiles: string[];
@@ -169,9 +170,10 @@ export class Packer {
         const changedFiles = [...this.plug.changedFiles];
         const emittedFiles = [...this.plug.emittedFiles];
         const result: PackerResult = {
+            plugin: this.plug,
             runIteration: this.runIteration++,
-            changedFiles: changedFiles.map(file => this.plug.relativeToDest(file)),
-            emittedFiles: emittedFiles.map(file => this.plug.relativeToDest(file)),
+            changedFiles: changedFiles.map(file => file.fullName),
+            emittedFiles: emittedFiles.map(file => file.fullName),
             emittedJSFiles: [],
             emittedCSSFiles: []
         };
