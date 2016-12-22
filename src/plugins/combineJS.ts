@@ -5,7 +5,7 @@ import {Plugin} from "../utils/Plugin";
 import {combiner} from "../utils/combiner";
 import {SourceFile, Import} from "../utils/SourceFile";
 import {base64Url} from "../utils/base64Url";
-import {makeHash} from "../utils/makeHash";
+import {makeHash, makeHashBinary} from "../utils/makeHash";
 import * as path from "path";
 
 const superHeader = `
@@ -87,11 +87,11 @@ export function combineJS(entryFilename: string, outfile: string) {
 
         async function nonJsFileContent(file: SourceFile) {
             const content = await plug.fs.readContent(file);
+            const binaryContent = file.content;
             if (plug.options.maxInlineSize >= content.length) {
-                return 'module.exports = "' + base64Url(file.extName, content) + '"';
+                return 'module.exports = "' + base64Url(file.extName, binaryContent) + '"';
             }
-
-            const relativeName = (makeHash(file.fullName) + makeHash(content)).toString(33) + '.' + file.extName;
+            const relativeName = (makeHash(file.fullName) + makeHashBinary(binaryContent)).toString(36) + '.' + file.extName;
             const destFileName = plug.normalizeDestName(relativeName);
             const destFile = await plug.fs.createGeneratedFromFile(destFileName, file, file);
             destFile.nameCanBeHashed = false;

@@ -3,7 +3,7 @@ import {plugin, PackerResult} from "../packer";
 import {Plugin} from "../utils/Plugin";
 import {logger} from "../utils/logger";
 import {SourceFile} from "../utils/SourceFile";
-import {makeHash} from "../utils/makeHash";
+import {makeHash, makeHashBinary} from "../utils/makeHash";
 import {relative} from "path";
 
 import path = require('path');
@@ -123,10 +123,11 @@ async function replace(htmlFile: SourceFile, replaceParams: HTMLReplaceParams, p
             }
             let newUrl = cache.urlData.get(urlFile);
             if (!newUrl || urlFile.updated) {
-                const urlContent = plug.fs.readContentSync(urlFile);
-                const urlBasename = (makeHash(urlFile.fullName) + makeHash(urlContent)).toString(33) + '.' + urlFile.extName;
+                plug.fs.readContentSync(urlFile);
+                const urlBinaryContent = urlFile.content;
+                const urlBasename = (makeHash(urlFile.fullName) + makeHashBinary(urlBinaryContent)).toString(36) + '.' + urlFile.extName;
                 const urlDestFileName = plug.normalizeDestName(urlBasename);
-                const urlDestFile = plug.fs.createGeneratedFile(urlDestFileName, urlContent, htmlFile);
+                const urlDestFile = plug.fs.createGeneratedFile(urlDestFileName, urlBinaryContent, htmlFile);
                 plug.stage.addFile(urlDestFile);
                 urlDestFile.nameCanBeHashed = false;
                 if (!htmlFile.imports) {

@@ -1,7 +1,7 @@
 import {plugin} from "../packer";
 import {Plugin} from "../utils/Plugin";
 import * as path from "path";
-import {makeHash} from "../utils/makeHash";
+import {makeHashBinary} from "../utils/makeHash";
 
 export function hash(predicator?: (filename: string) => boolean) {
     return plugin('hash', async(plug: Plugin) => {
@@ -10,7 +10,9 @@ export function hash(predicator?: (filename: string) => boolean) {
             const file = files[i];
             let relativeName = path.relative(plug.options.context, file.fullName);
             if ((!predicator || predicator(relativeName)) && file.nameCanBeHashed) {
-                const hashInt = makeHash(await plug.fs.readContent(file)).toString(36);
+                await plug.fs.readContent(file);
+                const binaryContent = file.content;
+                const hashInt = makeHashBinary(binaryContent).toString(36);
                 const newName = file.dirName + '/' + file.getBasename(true) + '_' + hashInt + '.' + file.extName;
                 plug.fs.rename(file, newName);
             }

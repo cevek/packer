@@ -4,7 +4,7 @@ import {combiner} from "../utils/combiner";
 import {SourceFile} from "../utils/SourceFile";
 import {parseCSSUrl} from "../utils/parseCSSUrl";
 import {base64Url} from "../utils/base64Url";
-import {makeHash} from "../utils/makeHash";
+import {makeHash, makeHashBinary} from "../utils/makeHash";
 import * as path from "path";
 import {logger} from "../utils/logger";
 
@@ -50,10 +50,11 @@ export function combineCSS(outfile: string) {
                 let newUrl = cache.urlData.get(urlFile);
                 if (urlFile.updated || !newUrl) {
                     const urlContent = await plug.fs.readContent(urlFile);
+                    const urlContentBinary = urlFile.content;
                     if (plug.options.maxInlineSize >= urlContent.length) {
-                        newUrl = base64Url(urlFile.extName, urlContent);
+                        newUrl = base64Url(urlFile.extName, urlContentBinary);
                     } else {
-                        const relativeName = (makeHash(urlFile.fullName) + makeHash(urlContent)).toString(33) + '.' + urlFile.extName;
+                        const relativeName = (makeHash(urlFile.fullName) + makeHashBinary(urlContentBinary)).toString(36) + '.' + urlFile.extName;
                         const destFileName = plug.normalizeDestName(relativeName);
                         const destFile = await plug.fs.createGeneratedFromFile(destFileName, cssFile, cssFile);
                         plug.stage.addFile(destFile);
