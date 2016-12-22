@@ -11,6 +11,9 @@ for (let i = 0; i < keys.length; i++) {
         }
     }
 }
-export function base64Url(ext: string, body: string) {
-    return `data:${extensions[ext] || 'application/octet-stream'};base64,${new Buffer(body).toString('base64')}`;
+export function base64Url(ext: string, body: string | Buffer) {
+    if (typeof body === 'string') {
+        body = Buffer.from(body);
+    }
+    return `data:${extensions[ext] || 'application/octet-stream'};base64,${body.toString('base64')}`;
 }
