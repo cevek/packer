@@ -4,6 +4,7 @@ import {Stats, FSWatcher} from "fs";
 import * as path from "path";
 import {SourceFile} from "./SourceFile";
 import {logger} from "./logger";
+import {Plugin} from "./plugin";
 import chokidar = require('chokidar');
 
 export interface GlobOptions {
@@ -23,13 +24,12 @@ export class CachedFS {
     // null - file doesn't exist
     private nodes = new Map<string, SourceFile>();
 
-    watcher: fs.FSWatcher = this.watchMode ? chokidar.watch('') : null;
+    watcher: fs.FSWatcher = this.plugin.watchMode ? chokidar.watch('') : null;
     private watchedFiles = new Set<SourceFile>();
 
     useSyncMethods = true;
-    skipNodeModulesWatch = true;
 
-    constructor(private context: string, private watchMode: boolean) {}
+    constructor(private plugin: Plugin) {}
 
     private createStat(filename: string, stats: Stats) {
         const file = new SourceFile(filename, stats.isDirectory());
@@ -193,7 +193,7 @@ export class CachedFS {
         }
         //todo: use minimatch and fs search
         const result = await globAsync(filesGlob, {
-            cwd: this.context
+            cwd: this.plugin.options.context
         });
         const files: SourceFile[] = [];
         for (let i = 0; i < result.length; i++) {
@@ -208,17 +208,17 @@ export class CachedFS {
 
     normalizeName(filename: string) {
         filename = path.normalize(filename);
-        filename = path.isAbsolute(filename) ? filename : path.normalize(this.context + '/' + filename);
+        filename = path.isAbsolute(filename) ? filename : path.normalize(this.plugin.options.context + '/' + filename);
         return filename;
     }
 
     relativeName(file: SourceFile) {
-        return path.relative(this.context, file.fullName);
+        return path.relative(this.plugin.options.context, file.fullName);
     }
 
     watch(file: SourceFile) {
-        if (this.watchMode) {
-            if (!this.skipNodeModulesWatch || !file.fullName.match(/\/node_modules\//)) {
+        if (this.plugin.watchMode) {
+            if (!this.plugin.options.skipNodeModulesWatch || !file.fullName.match(/\/node_modules\//)) {
                 this.watcher.add(file.fullName);
                 this.watchedFiles.add(file);
             }

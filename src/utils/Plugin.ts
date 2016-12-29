@@ -24,7 +24,7 @@ export class Plugin {
 
     constructor(public watchMode: boolean, options: PackerOptions) {
         this.options = options;
-        this.fs = new CachedFS(this.options.context, this.watchMode);
+        this.fs = new CachedFS(this);
         this.performance = new PerformanceMeasurer();
         this.reset();
     }
