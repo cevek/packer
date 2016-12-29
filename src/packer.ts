@@ -22,6 +22,7 @@ export interface PackerOptions {
     alias?: {[module: string]: string};
     maxInlineSize?: number;
     publicPath?: string;
+    skipNodeModulesWatch?: boolean;
 }
 
 export interface PackerResult {
@@ -50,6 +51,7 @@ export class Packer {
             alias: null,
             maxInlineSize: 0,
             publicPath: '',
+            skipNodeModulesWatch: false
         };
         if (options.context) {
             defaultOptions.context = path.resolve(options.context);
@@ -67,6 +69,9 @@ export class Packer {
         }
         if (typeof options.publicPath === 'string') {
             defaultOptions.publicPath = options.publicPath;
+        }
+        if (typeof options.skipNodeModulesWatch === 'boolean') {
+            defaultOptions.skipNodeModulesWatch = options.skipNodeModulesWatch;
         }
         defaultOptions.alias = options.alias;
         this.options = defaultOptions;
