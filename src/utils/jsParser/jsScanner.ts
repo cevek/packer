@@ -1,27 +1,11 @@
 import {parseJS} from "./jsParser";
-import {promisify} from "../promisify";
 import {Plugin} from "../Plugin";
 import {SourceFile, Import} from "../SourceFile";
 import {logger} from "../logger";
 import {SourceError} from "../SourceError";
+import {resolve} from "./requireResolve";
+import {makeHash} from "../makeHash";
 
-const _resolve = promisify<string>(require('resolve'));
-
-async function resolve(file: SourceFile, imprt: Import, options: ResolveOptions, plug: Plugin): Promise<string> {
-    try {
-        return await _resolve(imprt.module, options);
-    } catch (e) {
-        throw new SourceError(`Cannot find module "${imprt.module}"`, file, imprt.startLine, imprt.startColumn, imprt.endColumn, imprt.endColumn);
-    }
-}
-
-interface ResolveOptions {
-    basedir?: string;
-    package?: string;
-    readFile?: (filename: string, callback: (err: any, data: string | Buffer) => void) => void;
-    isFile?: (filename: string, callback: (err: any, data: boolean) => void) => void;
-    moduleDirectory?: string;
-}
 
 export class JSScanner {
     constructor(private plug: Plugin) {
@@ -31,21 +15,6 @@ export class JSScanner {
     private isRequire(code: string, start: number, size: number, startSymbolCode: number) {
         return size === 7 && startSymbolCode === 114/*r*/ && code.substr(start, size) === 'require';
     }
-
-    private readFile = (filename: string, callback: (err: any, result: string) => void): void => {
-        const file = this.plug.fs.findOrCreate(filename);
-        this.plug.fs.readContent(file).then(content => {
-            callback(null, content);
-        }, (err) => {
-            callback(err, null);
-        })
-    };
-
-    private isFile = (filename: string, callback: (err: any, result: boolean) => void) => {
-        this.plug.fs.tryFile(filename).then(file => {
-            callback(null, file && !file.isDir);
-        });
-    };
 
     private scanned = new Map<SourceFile, boolean>();
 
@@ -116,17 +85,18 @@ export class JSScanner {
         const newImports: Import[] = [];
         for (let i = 0; i < imports.length; i++) {
             const imprt = imports[i];
-            const moduleResolvedUrl = await resolve(file, imprt, {
-                basedir: file.dirName,
-                readFile: this.readFile,
-                isFile: this.isFile
-            }, this.plug);
-
-            imprt.file = this.plug.fs.getFromCache(moduleResolvedUrl);
-            if (!imprt.file) {
-                throw new SourceError(`Cannot find file "${moduleResolvedUrl}"`, file, imprt.startLine, imprt.startColumn, imprt.endColumn, imprt.endColumn);
+            let moduleResolvedUrl = await resolve(imprt.module, file.dirName, this.plug);
+            if (moduleResolvedUrl === '%skip%') {
+                const tmpFile = this.plug.fs.createGeneratedFile('tmp_' + makeHash(imprt.module) + '.js', '/*skipped file*/\nmodule.exports = {}', file);
+                moduleResolvedUrl = tmpFile.fullName;
             }
+            const imfile = this.plug.fs.getFromCache(moduleResolvedUrl);
+            if (!moduleResolvedUrl || !imfile) {
+                throw new SourceError(`Cannot find module "${moduleResolvedUrl || imprt.module}"`, file, imprt.startLine, imprt.startColumn, imprt.endColumn, imprt.endColumn);
+            }
+            imprt.file = imfile;
             newImports.push(imprt);
+
             // console.log('child scan', imprt.file.updated, imprt.file.extName, imprt.file.fullName);
             if (imprt.file.extName === 'js') {
                 await this.scan(imprt.file);
