@@ -22,7 +22,7 @@ export class Plugin {
     private cacheData = new Map<string, any>();
 
 
-    constructor(public watchMode: boolean, options: PackerOptions) {
+    constructor(public watchMode: boolean, options: PackerOptions, public nodeEnv = false) {
         this.options = options;
         this.fs = new CachedFS(this);
         this.performance = new PerformanceMeasurer();
