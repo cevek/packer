@@ -21,13 +21,15 @@ export async function resolve(x: string, baseDir: string, plug: Plugin) {
     if (module) {
         return module;
     }
+    if (core[x]) {
+        return '%core%';
+    }
 
     let isLocalModule = localModuleRegexp.test(x);
     if (isLocalModule) {
         x = path.resolve(baseDir, x);
         if (x === '..') x += '/';
     }
-
     // console.log('xxxxxx', x);
 
     const currentModuleMain = await getCurrentModuleMain(baseDir, plug, cache);
@@ -88,25 +90,27 @@ async function loadMainFromPackageJson(module: string, plug: Plugin, cache: Cach
         const body = await plug.fs.readContent(pkgFile);
         const pkg = JSON.parse(body);
         let mainFile = pkg.main || 'index';
-        if (typeof pkg.browser === 'string') {
-            mainFile = pkg.browser;
-        }
         let rm = cache.redirectModules.get(module);
         if (!rm) {
             rm = new Map();
             cache.redirectModules.set(module, rm);
         }
-        if (pkg.browser && typeof pkg.browser === 'object') {
-            for (const m in pkg.browser) {
-                const val = pkg.browser[m];
-                const key = localModuleRegexp.test(m) ? path.resolve(module, m) : m;
-                if (val === false) {
-                    rm.set(key, null);
-                } else {
-                    rm.set(key, path.resolve(module, val));
-                }
+        if (!plug.nodeEnv && pkg.browser) {
+            if (typeof pkg.browser === 'string') {
+                mainFile = pkg.browser;
             }
-            // console.log('rm', module, pkg.browser, rm);
+            else if (typeof pkg.browser === 'object') {
+                for (const m in pkg.browser) {
+                    const val = pkg.browser[m];
+                    const key = localModuleRegexp.test(m) ? path.resolve(module, m) : m;
+                    if (val === false) {
+                        rm.set(key, null);
+                    } else {
+                        rm.set(key, path.resolve(module, val));
+                    }
+                }
+                // console.log('rm', module, pkg.browser, rm);
+            }
         }
         return mainFile;
     }
@@ -186,3 +190,5 @@ function nodeModulesPaths(startPath: string, cache: Cache) {
     cache.nodeModules.set(startPath, nmDirs);
     return nmDirs;
 }
+
+const core:{[k:string]:number} = {"assert":1,"buffer_ieee754":1,"buffer":1,"child_process":1,"cluster":1,"console":1,"constants":1,"crypto":1,"_debugger":1,"dgram":1,"dns":1,"domain":1,"events":1,"freelist":1,"fs":1,"http":1,"https":1,"_linklist":1,"module":1,"net":1,"os":1,"path":1,"punycode":1,"querystring":1,"readline":1,"repl":1,"stream":1,"string_decoder":1,"sys":1,"timers":1,"tls":1,"tty":1,"url":1,"util":1,"vm":1,"zlib":1}

@@ -80,7 +80,7 @@ export class JSScanner {
 
         let code = await this.plug.fs.readContent(file);
         const filename = this.plug.fs.relativeName(file);
-        const imports = this.findImports(filename, code);
+        const imports = this.findImports(file.fullName, code);
 
         const newImports: Import[] = [];
         for (let i = 0; i < imports.length; i++) {
@@ -89,6 +89,9 @@ export class JSScanner {
             if (moduleResolvedUrl === '%skip%') {
                 const tmpFile = this.plug.fs.createGeneratedFile('tmp_' + makeHash(imprt.module) + '.js', '/*skipped file*/\nmodule.exports = {}', file);
                 moduleResolvedUrl = tmpFile.fullName;
+            }
+            if (moduleResolvedUrl === '%core%') {
+                continue;
             }
             const imfile = this.plug.fs.getFromCache(moduleResolvedUrl);
             if (!moduleResolvedUrl || !imfile) {

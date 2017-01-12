@@ -77,8 +77,8 @@ export class Packer {
         this.options = defaultOptions;
     }
 
-    async run(options: {watch?: boolean} = {}) {
-        this.plug = new Plugin(options.watch, this.options);
+    async run(options: {watch?: boolean, nodeEnv?: boolean} = {}) {
+        this.plug = new Plugin(options.watch, this.options, options.nodeEnv);
         if (options.watch) {
             await this.watchRunner([]);
         } else {
