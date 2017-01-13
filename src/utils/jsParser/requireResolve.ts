@@ -6,6 +6,7 @@ interface Cache {
     parentDirs: Map<string, string[]>
     nodeModules: Map<string, string[]>
     redirectModules: Map<string, Map<string, string>>;
+    mainPkg: Map<string, string>;
 }
 
 const localModuleRegexp = /^(?:\.\.?(?:\/|$)|\/|([A-Za-z]:)?[\\\/])/;
@@ -16,6 +17,7 @@ export async function resolve(x: string, baseDir: string, plug: Plugin) {
         cache.parentDirs = new Map();
         cache.nodeModules = new Map();
         cache.redirectModules = new Map();
+        cache.mainPkg = new Map();
     }
     let module = cache.resolved.get(x);
     if (module) {
@@ -85,7 +87,12 @@ async function loadAsDirectory(module: string, plug: Plugin, cache: Cache): Prom
 }
 
 async function loadMainFromPackageJson(module: string, plug: Plugin, cache: Cache) {
-    const pkgFile = await plug.fs.tryFile(module + '/package.json');
+    const pkgFilename = module + '/package.json';
+    const mainFile = cache.mainPkg.get(pkgFilename);
+    if (mainFile || mainFile === null) {
+        return mainFile;
+    }
+    const pkgFile = await plug.fs.tryFile(pkgFilename);
     if (pkgFile && !pkgFile.isDir) {
         const body = await plug.fs.readContent(pkgFile);
         const pkg = JSON.parse(body);
@@ -109,17 +116,18 @@ async function loadMainFromPackageJson(module: string, plug: Plugin, cache: Cach
                         rm.set(key, path.resolve(module, val));
                     }
                 }
-                // console.log('rm', module, pkg.browser, rm);
             }
         }
+        cache.mainPkg.set(pkgFilename, mainFile);
         return mainFile;
     }
+    cache.mainPkg.set(pkgFilename, null);
     return null;
 }
 
 
 async function loadNodeModules(module: string, start: string, plug: Plugin, cache: Cache) {
-    const dirs = nodeModulesPaths(start, cache);
+    const dirs = nodeModulesPaths(start, plug, cache);
     for (let i = 0; i < dirs.length; i++) {
         const dir = dirs[i] + '/' + module;
         const m = await loadAsFile(dir, plug, cache) || await loadAsDirectory(dir, plug, cache);
@@ -132,7 +140,7 @@ async function loadNodeModules(module: string, start: string, plug: Plugin, cach
 
 
 async function getCurrentModuleMain(currentDir: string, plug: Plugin, cache: Cache) {
-    const dirs = parentDirs(currentDir, cache);
+    const dirs = parentDirs(currentDir, plug, cache);
     for (let i = 0; i < dirs.length; i++) {
         const dir = dirs[i];
         const m = await loadMainFromPackageJson(dir, plug, cache);
@@ -146,7 +154,7 @@ async function getCurrentModuleMain(currentDir: string, plug: Plugin, cache: Cac
 
 const splitRe = process.platform === 'win32' ? /[\/\\]/ : /\/+/;
 
-function parentDirs(startPath: string, cache: Cache) {
+function parentDirs(startPath: string, plug: Plugin, cache: Cache) {
     startPath = path.resolve(startPath);
     let dirs = cache.parentDirs.get(startPath);
     if (dirs) {
@@ -175,13 +183,13 @@ function parentDirs(startPath: string, cache: Cache) {
     return dirs;
 }
 
-function nodeModulesPaths(startPath: string, cache: Cache) {
+function nodeModulesPaths(startPath: string, plug: Plugin, cache: Cache) {
     startPath = path.resolve(startPath);
     let nmDirs = cache.nodeModules.get(startPath);
     if (nmDirs) {
         return nmDirs;
     }
-    const dirs = parentDirs(startPath, cache);
+    const dirs = parentDirs(startPath, plug, cache);
     nmDirs = new Array(dirs.length);
     for (let i = 0; i < dirs.length; i++) {
         const dir = dirs[i];
