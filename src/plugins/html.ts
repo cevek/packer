@@ -93,8 +93,8 @@ function preparePredefinedParams(params: HTMLReplaceParams, plug: Plugin, packer
         jsFiles = [];
         for (let i = 0; i < stage.length; i++) {
             const file = stage[i];
-            if (file.extName == 'js' || file.extName == 'css' && plug.inDestFolder(file)) {
-                const src = plug.options.publicPath + plug.relativeToDest(file);
+            if ((file.extName == 'js' || file.extName == 'css') && plug.inDestFolder(file)) {
+                const src = file.fullName;
                 if (file.extName == 'js') {
                     jsFiles.push(src);
                 }
