@@ -9,7 +9,7 @@ export function hash(predicator?: (filename: string) => boolean) {
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             let relativeName = path.relative(plug.options.context, file.fullName);
-            if ((!predicator || predicator(relativeName)) && file.nameCanBeHashed) {
+            if ((!predicator || predicator(relativeName)) && file.nameCanBeHashed && plug.inDestFolder(file)) {
                 await plug.fs.readContent(file);
                 const binaryContent = file.content;
                 const hashInt = makeHashBinary(binaryContent).toString(36);
