@@ -62,7 +62,11 @@ export async function combiner(params: CombinerOptions) {
                 smw.putFile(content, plug.fs.relativeName(file));
             }
             smw.skipCode(footer);
+            if (sourceMapFile) {
+                plug.stage.remove(sourceMapFile);
+            }
         }
+        plug.stage.remove(file);
         bulk += header + content + footer;
     }
 
