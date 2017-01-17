@@ -7,6 +7,8 @@ import {logger} from './logger';
 import {Plugin} from './plugin';
 import chokidar = require('chokidar');
 import {Stage} from './Stage';
+import {globValue} from './globArray';
+
 
 export interface GlobOptions {
     cwd?: string;
@@ -197,15 +199,22 @@ export class CachedFS {
         const result = await globAsync(filesGlob, {
             cwd: this.plugin.options.context
         });
-        const files: SourceFile[] = [];
+        const files = new Set<SourceFile>();
         for (let i = 0; i < result.length; i++) {
             const filename = result[i];
-            files.push(await this.readStats(this.normalizeName(filename)));
+            files.add(await this.readStats(this.normalizeName(filename)));
         }
-        if (files.length == 0) {
+        const list = this.stage.list();
+        for (let i = 0; i < list.length; i++) {
+            const file = list[i];
+            if (globValue(file.fullName, filesGlob)) {
+                files.add(file);
+            }
+        }
+        if (files.size === 0) {
             logger.error('Find files empty result by query: ' + filesGlob);
         }
-        return files;
+        return [...files];
     }
 
     normalizeName(filename: string) {
