@@ -13,6 +13,7 @@ export class SourceFile {
     imports: Import[];
     isDir: boolean; //todo:
     private _createdFiles: Set<SourceFile>;
+    injectOptions: any;
 
     get createdFiles() {
         return this._createdFiles || (this._createdFiles = new Set());
