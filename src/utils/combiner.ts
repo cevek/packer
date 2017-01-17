@@ -15,8 +15,17 @@ export interface CombinerOptions {
     getFooter?: (file: SourceFile) => string;
 }
 
+interface CombineCache {
+    combined: Set<SourceFile>;
+}
+
 export async function combiner(params: CombinerOptions) {
     const {plug, superHeader, superFooter, getContent, getFooter, getHeader, files, outfile, type} = params;
+    const cache = plug.getCache('combine') as CombineCache;
+    if (!cache.combined) {
+        cache.combined = new Set();
+    }
+
     let bulk = params.superHeader;
     const dirname = path.dirname(outfile);
     const compileSourceMaps = plug.options.sourceMap;
@@ -28,6 +37,9 @@ export async function combiner(params: CombinerOptions) {
 
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        if (cache.combined.has(file)) {
+            return;
+        }
         const header = getHeader ? getHeader(file) : '';
         let content = await getContent(file);
         const footer = getFooter ? getFooter(file) : '';
@@ -76,13 +88,16 @@ export async function combiner(params: CombinerOptions) {
         const sourceMap = smw.toSourceMap();
         const mapFile = plug.fs.createGeneratedFile(outfile + '.map', sourceMap.toString(), files[0]);
         plug.fs.stage.addFile(mapFile);
-        if (type == 'js') {
+        cache.combined.add(mapFile);
+        if (type === 'js') {
             bulk += '\n//# sourceMappingURL=' + mapFile.getBasename();
         }
-        if (type == 'css') {
+        if (type === 'css') {
             bulk += '\n/*# sourceMappingURL=' + mapFile.getBasename() + '*/';
         }
     }
     const file = plug.fs.createGeneratedFile(outfile, bulk, files[0]);
     plug.fs.stage.addFile(file);
+    cache.combined.add(file);
+    return file;
 }
