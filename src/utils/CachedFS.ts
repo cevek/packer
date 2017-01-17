@@ -7,7 +7,7 @@ import {logger} from './logger';
 import {Plugin} from './plugin';
 import chokidar = require('chokidar');
 import {Stage} from './Stage';
-import {globValue} from './globArray';
+import {globValue} from './globValue';
 
 
 export interface GlobOptions {

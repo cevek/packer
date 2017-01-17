@@ -8,7 +8,7 @@ import {makeHash, makeHashBinary} from '../utils/makeHash';
 import * as path from 'path';
 import {logger} from '../utils/logger';
 import {Glob} from '../utils/CachedFS';
-import {globValue} from '../utils/globArray';
+import {globValue} from '../utils/globValue';
 
 
 interface CombineCSSCache {
