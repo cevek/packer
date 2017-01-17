@@ -8,14 +8,19 @@ import {makeHash, makeHashBinary} from '../utils/makeHash';
 import * as path from 'path';
 import {logger} from '../utils/logger';
 import {Glob} from '../utils/CachedFS';
-
-
+import {globValue} from '../utils/globArray';
 
 
 interface CombineCSSCache {
     urlData: Map<SourceFile, string>;
+    linkOptions: Map<SourceFile, CombineCSSOptions>;
 }
-export function combineCSS(outfile: string, sourceFilesGlob?: Glob) {
+
+export interface CombineCSSOptions {
+    attrs?: {[key: string]: string}
+}
+
+export function combineCSS(outfile: string, filterGlob: Glob = '**/*.css', options?: CombineCSSOptions) {
     return plugin('combineCSS', async (plug: Plugin) => {
         outfile = plug.normalizeDestName(outfile);
         const cache = plug.getCache('combineCSS') as CombineCSSCache;
@@ -23,11 +28,8 @@ export function combineCSS(outfile: string, sourceFilesGlob?: Glob) {
             cache.urlData = new Map();
         }
 
-        const files = plug.fs.stage.list().filter(file => file.extName === 'css' && file.fullName !== outfile);
-        if (sourceFilesGlob) {
-            files.push(...await plug.fs.findFiles(sourceFilesGlob));
-        }
 
+        const files = plug.fs.stage.list().filter(file => file.extName === 'css' && file.fullName !== outfile && (filterGlob ? globValue(file.fullName, filterGlob) : true));
         files.forEach(file => {
             if (file.imports) {
                 const someImportsUpdated = file.imports.some(imprt => imprt.file.updated);
@@ -49,7 +51,8 @@ export function combineCSS(outfile: string, sourceFilesGlob?: Glob) {
                 if (/^https?:/i.test(url) || /^data:/.test(url)) {
                     continue;
                 }
-                const abcUrl = plug.normalizeName(url);
+                const abcUrl = plug.normalizeName(path.isAbsolute(url) ? url : path.resolve(cssFile.dirName, url));
+
                 const urlFile = await plug.fs.tryFile(abcUrl);
                 if (!urlFile) {
                     //todo:
@@ -65,7 +68,7 @@ export function combineCSS(outfile: string, sourceFilesGlob?: Glob) {
                     } else {
                         const relativeName = (makeHash(urlFile.fullName) + makeHashBinary(urlContentBinary)).toString(36) + '.' + urlFile.extName;
                         const destFileName = plug.normalizeDestName(relativeName);
-                        const destFile = await plug.fs.createGeneratedFromFile(destFileName, cssFile, cssFile);
+                        const destFile = await plug.fs.createGeneratedFromFile(destFileName, urlFile, cssFile);
                         plug.fs.stage.addFile(destFile);
                         destFile.nameCanBeHashed = false;
                         newUrl = plug.options.publicPath + path.relative(outfile, destFileName).replace(/..\//g, '');
@@ -93,8 +96,9 @@ export function combineCSS(outfile: string, sourceFilesGlob?: Glob) {
             }
             return newContent;
         }
+        let file: SourceFile;
         if (hasUpdates) {
-            await combiner({
+            file = await combiner({
                 type: 'css',
                 plug,
                 outfile,
@@ -106,8 +110,17 @@ export function combineCSS(outfile: string, sourceFilesGlob?: Glob) {
             });
         } else {
             if (files.length) {
-                files[0].createdFiles.forEach(f => plug.fs.stage.addFile(f));
+                files[0].createdFiles.forEach(f => {
+                    plug.fs.stage.addFile(f)
+                    file = f;
+                });
             }
+        }
+        if (file) {
+            if (!file.injectOptions) {
+                file.injectOptions = {};
+            }
+            file.injectOptions.link = options;
         }
     });
 }
