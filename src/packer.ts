@@ -1,19 +1,21 @@
-import "./helpers";
-import {logger} from "./utils/logger";
-import {padRight, padLeft, formatBytes} from "./utils/common";
-import {Plugin} from "./utils/Plugin";
-import * as path from "path";
-import FastPromise from "fast-promise";
+import './helpers';
+import {logger} from './utils/logger';
+import {padRight, padLeft, formatBytes} from './utils/common';
+import {Plugin} from './utils/Plugin';
+import * as path from 'path';
+import FastPromise from 'fast-promise';
 import chokidar = require('chokidar');
 import Timer = NodeJS.Timer;
-export * from "./utils/Plugin";
+import {SourceFile} from './utils/SourceFile';
+export * from './utils/Plugin';
 
-export {combineJS} from "./plugins/combineJS";
-export {combineCSS} from "./plugins/combineCSS";
-export {copy} from "./plugins/copy";
-export {hash} from "./plugins/hash";
-export {conditional} from "./utils/conditional";
-export {replaceCode} from "./plugins/replaceCode";
+export {combineJS} from './plugins/combineJS';
+export {combineCSS} from './plugins/combineCSS';
+export {copy} from './plugins/copy';
+export {hash} from './plugins/hash';
+export {conditional} from './utils/conditional';
+export {replaceCode} from './plugins/replaceCode';
+export {src} from './plugins/src';
 
 export interface PackerOptions {
     context: string;
@@ -28,10 +30,8 @@ export interface PackerOptions {
 export interface PackerResult {
     plugin: Plugin;
     runIteration: number;
-    emittedFiles: string[];
-    changedFiles: string[];
-    emittedJSFiles: string[];
-    emittedCSSFiles: string[];
+    emittedFiles: SourceFile[];
+    changedFiles: SourceFile[];
 }
 
 export class Packer {
@@ -177,13 +177,9 @@ export class Packer {
         const result: PackerResult = {
             plugin: this.plug,
             runIteration: this.runIteration++,
-            changedFiles: changedFiles.map(file => file.fullName),
-            emittedFiles: emittedFiles.map(file => file.fullName),
-            emittedJSFiles: [],
-            emittedCSSFiles: []
+            changedFiles: changedFiles,
+            emittedFiles: emittedFiles,
         };
-        result.emittedJSFiles = result.emittedFiles.filter(filename => /\.js$/i.test(filename));
-        result.emittedCSSFiles = result.emittedFiles.filter(filename => /\.css$/i.test(filename));
         return result;
     }
 
