@@ -32,8 +32,11 @@ var process = {
 
 const superFooter = `\n})(typeof window == 'object' ? window : process, typeof require != 'undefined' && require, typeof module != 'undefined' && module, typeof require != 'undefined' && require)`;
 
+export interface CombineJSOptions {
+    attrs?: {[attr: string]: string}
+}
 
-export function combineJS(entryFilename: string, outfile: string) {
+export function combineJS(entryFilename: string, outfile: string, options?: CombineJSOptions) {
     return plugin('combineJS', async (plug: Plugin) => {
         // console.time('JSScanner');
         outfile = plug.normalizeDestName(outfile);
@@ -120,12 +123,13 @@ export function combineJS(entryFilename: string, outfile: string) {
         });
 
         const hasUpdates = files.some(file => file.extName === 'js' && file.updated);
+        let file: SourceFile;
         if (hasUpdates) {
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 await jsScanner.scan(file);
             }
-            await combiner({
+            file = await combiner({
                 type: 'js',
                 plug,
                 outfile,
@@ -142,8 +146,17 @@ export function combineJS(entryFilename: string, outfile: string) {
             });
         } else {
             if (files.length) {
-                files[0].createdFiles.forEach(f => plug.fs.stage.addFile(f));
+                files[0].createdFiles.forEach(f => {
+                    plug.fs.stage.addFile(f)
+                    file = f;
+                });
             }
+        }
+        if (file) {
+            if (!file.injectOptions) {
+                file.injectOptions = {};
+            }
+            file.injectOptions.script = options;
         }
     });
 }
