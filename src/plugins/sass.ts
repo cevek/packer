@@ -60,11 +60,11 @@ export function sass(globFiles?: Glob, options: SassOptions = {}) {
         }
         const files = await plug.fs.findFiles(globFiles);
         files.forEach(file => {
-            plug.stage.addFile(file);
+            plug.fs.stage.addFile(file);
             plug.fs.watch(file);
         });
 
-        const sassFiles = plug.stage.list().filter(file => file.extName.match(/^s[ac]ss$/));
+        const sassFiles = plug.fs.stage.list().filter(file => file.extName.match(/^s[ac]ss$/));
         for (let i = 0; i < sassFiles.length; i++) {
             const file = sassFiles[i];
             if (file.imports) {
@@ -96,7 +96,7 @@ export function sass(globFiles?: Glob, options: SassOptions = {}) {
             }
             const cssFile = plug.fs.createGeneratedFile(cssName, result.css, file);
             file.imports = [];
-            plug.stage.addFile(cssFile);
+            plug.fs.stage.addFile(cssFile);
             for (let j = 0; j < result.stats.includedFiles.length; j++) {
                 const filename = result.stats.includedFiles[j];
                 const depFile = plug.fs.findOrCreate(filename);
@@ -117,7 +117,7 @@ export function sass(globFiles?: Glob, options: SassOptions = {}) {
         const nonUpdatedFiles = sassFiles.filter(file => !file.updated);
         for (let i = 0; i < nonUpdatedFiles.length; i++) {
             const file = nonUpdatedFiles[i];
-            file.createdFiles.forEach(f => plug.stage.addFile(f));
+            file.createdFiles.forEach(f => plug.fs.stage.addFile(f));
         }
     });
 }

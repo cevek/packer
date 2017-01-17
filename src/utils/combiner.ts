@@ -63,10 +63,10 @@ export async function combiner(params: CombinerOptions) {
             }
             smw.skipCode(footer);
             if (sourceMapFile) {
-                plug.stage.remove(sourceMapFile);
+                plug.fs.stage.remove(sourceMapFile);
             }
         }
-        plug.stage.remove(file);
+        plug.fs.stage.remove(file);
         bulk += header + content + footer;
     }
 
@@ -75,7 +75,7 @@ export async function combiner(params: CombinerOptions) {
         smw.skipCode(superFooter);
         const sourceMap = smw.toSourceMap();
         const mapFile = plug.fs.createGeneratedFile(outfile + '.map', sourceMap.toString(), files[0]);
-        plug.stage.addFile(mapFile);
+        plug.fs.stage.addFile(mapFile);
         if (type == 'js') {
             bulk += '\n//# sourceMappingURL=' + mapFile.getBasename();
         }
@@ -84,5 +84,5 @@ export async function combiner(params: CombinerOptions) {
         }
     }
     const file = plug.fs.createGeneratedFile(outfile, bulk, files[0]);
-    plug.stage.addFile(file);
+    plug.fs.stage.addFile(file);
 }

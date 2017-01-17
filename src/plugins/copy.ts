@@ -17,12 +17,12 @@ export function copy(globFiles: Glob, pathModificator?: (filename: string) => st
             const destFileName = plug.normalizeDestName(relativeName);
             const destFile = await plug.fs.createGeneratedFromFile(destFileName, file, file);
             destFile.nameCanBeHashed = false;
-            plug.stage.addFile(destFile);
+            plug.fs.stage.addFile(destFile);
         }
 
         for (let i = 0; i < unchangedFiles.length; i++) {
             const file = unchangedFiles[i];
-            file.createdFiles.forEach(f => plug.stage.addFile(f));
+            file.createdFiles.forEach(f => plug.fs.stage.addFile(f));
         }
     });
 }

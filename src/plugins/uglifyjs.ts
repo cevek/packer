@@ -14,11 +14,11 @@ export function uglifyjs(globFiles?: Glob, options: UglifyJS.MinifyOptions = {})
         options.fromString = true;
         const files = await plug.fs.findFiles(globFiles);
         files.forEach(file => {
-            plug.stage.addFile(file);
+            plug.fs.stage.addFile(file);
             plug.fs.watch(file);
         });
 
-        const jsFiles = plug.stage.list().filter(file => file.extName.match(/^js$/));
+        const jsFiles = plug.fs.stage.list().filter(file => file.extName.match(/^js$/));
         const updatedFiles = jsFiles.filter(file => file.updated);
         for (let i = 0; i < updatedFiles.length; i++) {
             const file = updatedFiles[i];
@@ -31,17 +31,17 @@ export function uglifyjs(globFiles?: Glob, options: UglifyJS.MinifyOptions = {})
             (options as any).outFileName = jsName;
             const result = UglifyJS.minify(source, options);
             const jsFile = plug.fs.createGeneratedFile(jsName, result.code, file);
-            plug.stage.addFile(jsFile);
+            plug.fs.stage.addFile(jsFile);
             if (result.map) {
                 const jsFileMap = plug.fs.createGeneratedFile(jsNameMap, result.map, file);
-                plug.stage.addFile(jsFileMap);
+                plug.fs.stage.addFile(jsFileMap);
             }
         }
 
         const nonUpdatedFiles = jsFiles.filter(file => !file.updated);
         for (let i = 0; i < nonUpdatedFiles.length; i++) {
             const file = nonUpdatedFiles[i];
-            file.createdFiles.forEach(f => plug.stage.addFile(f));
+            file.createdFiles.forEach(f => plug.fs.stage.addFile(f));
         }
     });
 }

@@ -95,7 +95,7 @@ export function combineJS(entryFilename: string, outfile: string) {
             const destFileName = plug.normalizeDestName(relativeName);
             const destFile = await plug.fs.createGeneratedFromFile(destFileName, file, file);
             destFile.nameCanBeHashed = false;
-            plug.stage.addFile(destFile);
+            plug.fs.stage.addFile(destFile);
             return 'module.exports = "' + plug.options.publicPath + path.relative(outfile, destFileName).replace(/..\//g, '') + '"';
         }
 
@@ -142,7 +142,7 @@ export function combineJS(entryFilename: string, outfile: string) {
             });
         } else {
             if (files.length) {
-                files[0].createdFiles.forEach(f => plug.stage.addFile(f));
+                files[0].createdFiles.forEach(f => plug.fs.stage.addFile(f));
             }
         }
     });

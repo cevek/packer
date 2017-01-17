@@ -14,7 +14,6 @@ export class Plugin {
     jsEntries: SourceFile[];
     fs: CachedFS;
     performance: PerformanceMeasurer;
-    stage: Stage;
     changedFiles: Set<SourceFile>;
     emittedFiles: Set<SourceFile>;
     jsScanner:JSScanner;
@@ -55,7 +54,7 @@ export class Plugin {
 
     printStageFiles() {
         logger.data('Stage files');
-        this.stage.list().forEach(file => logger.data('  ' + this.fs.relativeName(file)));
+        this.fs.stage.list().forEach(file => logger.data('  ' + this.fs.relativeName(file)));
     }
 
     relativeToDest(file: SourceFile) {
@@ -67,7 +66,7 @@ export class Plugin {
     }
 
     reset() {
-        this.stage = new Stage();
+        this.fs.stage = new Stage();
         this.jsEntries = [];
         this.jsScanner = new JSScanner(this);
         this.performance = new PerformanceMeasurer();
@@ -77,7 +76,7 @@ export class Plugin {
     }
 
     destroy() {
-        this.stage = null;
+        this.fs.stage = null;
         this.jsEntries = null;
         this.jsScanner = null;
         this.performance = null;

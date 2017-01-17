@@ -1,24 +1,33 @@
-import {plugin} from "../packer";
-import {Plugin} from "../utils/Plugin";
-import {combiner} from "../utils/combiner";
-import {SourceFile} from "../utils/SourceFile";
-import {parseCSSUrl} from "../utils/parseCSSUrl";
-import {base64Url} from "../utils/base64Url";
-import {makeHash, makeHashBinary} from "../utils/makeHash";
-import * as path from "path";
-import {logger} from "../utils/logger";
+import {plugin} from '../packer';
+import {Plugin} from '../utils/Plugin';
+import {combiner} from '../utils/combiner';
+import {SourceFile} from '../utils/SourceFile';
+import {parseCSSUrl} from '../utils/parseCSSUrl';
+import {base64Url} from '../utils/base64Url';
+import {makeHash, makeHashBinary} from '../utils/makeHash';
+import * as path from 'path';
+import {logger} from '../utils/logger';
+import {Glob} from '../utils/CachedFS';
+
+
+
 
 interface CombineCSSCache {
     urlData: Map<SourceFile, string>;
 }
-export function combineCSS(outfile: string) {
+export function combineCSS(outfile: string, sourceFilesGlob?: Glob) {
     return plugin('combineCSS', async (plug: Plugin) => {
         outfile = plug.normalizeDestName(outfile);
         const cache = plug.getCache('combineCSS') as CombineCSSCache;
         if (!cache.urlData) {
             cache.urlData = new Map();
         }
-        const files = plug.stage.list().filter(file => file.extName === 'css' && file.fullName !== outfile);
+
+        const files = plug.fs.stage.list().filter(file => file.extName === 'css' && file.fullName !== outfile);
+        if (sourceFilesGlob) {
+            files.push(...await plug.fs.findFiles(sourceFilesGlob));
+        }
+
         files.forEach(file => {
             if (file.imports) {
                 const someImportsUpdated = file.imports.some(imprt => imprt.file.updated);
@@ -57,7 +66,7 @@ export function combineCSS(outfile: string) {
                         const relativeName = (makeHash(urlFile.fullName) + makeHashBinary(urlContentBinary)).toString(36) + '.' + urlFile.extName;
                         const destFileName = plug.normalizeDestName(relativeName);
                         const destFile = await plug.fs.createGeneratedFromFile(destFileName, cssFile, cssFile);
-                        plug.stage.addFile(destFile);
+                        plug.fs.stage.addFile(destFile);
                         destFile.nameCanBeHashed = false;
                         newUrl = plug.options.publicPath + path.relative(outfile, destFileName).replace(/..\//g, '');
                     }
@@ -97,7 +106,7 @@ export function combineCSS(outfile: string) {
             });
         } else {
             if (files.length) {
-                files[0].createdFiles.forEach(f => plug.stage.addFile(f));
+                files[0].createdFiles.forEach(f => plug.fs.stage.addFile(f));
             }
         }
     });

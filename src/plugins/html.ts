@@ -44,7 +44,7 @@ export function html(options: HTMLOptions) {
         }
 
         files.forEach(file => {
-            plug.stage.addFile(file);
+            plug.fs.stage.addFile(file);
             plug.fs.watch(file);
         });
         files.forEach(file => {
@@ -70,13 +70,13 @@ export function html(options: HTMLOptions) {
             const destFilename = plug.normalizeDestName(options.destFile);
             const destFile = plug.fs.createGeneratedFile(destFilename, newSource, file);
             destFile.nameCanBeHashed = false;
-            plug.stage.addFile(destFile);
+            plug.fs.stage.addFile(destFile);
         }
 
         const nonUpdatedFiles = files.filter(file => !file.updated);
         for (let i = 0; i < nonUpdatedFiles.length; i++) {
             const file = nonUpdatedFiles[i];
-            file.createdFiles.forEach(f => plug.stage.addFile(f));
+            file.createdFiles.forEach(f => plug.fs.stage.addFile(f));
         }
     });
 }
@@ -88,7 +88,7 @@ function preparePredefinedParams(params: HTMLReplaceParams, plug: Plugin, packer
         cssFiles = packerResult.emittedCSSFiles;
         jsFiles = packerResult.emittedJSFiles;
     } else {
-        const stage = plug.stage.list();
+        const stage = plug.fs.stage.list();
         cssFiles = [];
         jsFiles = [];
         for (let i = 0; i < stage.length; i++) {
@@ -159,7 +159,7 @@ async function replaceHref(htmlFile: SourceFile, plug: Plugin, cache: HTMLCache)
             const urlBasename = (makeHash(urlFile.fullName) + makeHashBinary(urlBinaryContent)).toString(36) + '.' + urlFile.extName;
             const urlDestFileName = plug.normalizeDestName(urlBasename);
             const urlDestFile = plug.fs.createGeneratedFile(urlDestFileName, urlBinaryContent, htmlFile);
-            plug.stage.addFile(urlDestFile);
+            plug.fs.stage.addFile(urlDestFile);
             urlDestFile.nameCanBeHashed = false;
             if (!htmlFile.imports) {
                 htmlFile.imports = [];

@@ -5,7 +5,7 @@ import {makeHashBinary} from "../utils/makeHash";
 
 export function hash(predicator?: (filename: string) => boolean) {
     return plugin('hash', async(plug: Plugin) => {
-        const files = await plug.stage.list();
+        const files = await plug.fs.stage.list();
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             let relativeName = path.relative(plug.options.context, file.fullName);

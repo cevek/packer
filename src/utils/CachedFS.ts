@@ -1,11 +1,12 @@
-import {promisify} from "./promisify";
-import * as fs from "fs";
-import {Stats, FSWatcher} from "fs";
-import * as path from "path";
-import {SourceFile} from "./SourceFile";
-import {logger} from "./logger";
-import {Plugin} from "./plugin";
+import {promisify} from './promisify';
+import * as fs from 'fs';
+import {Stats, FSWatcher} from 'fs';
+import * as path from 'path';
+import {SourceFile} from './SourceFile';
+import {logger} from './logger';
+import {Plugin} from './plugin';
 import chokidar = require('chokidar');
+import {Stage} from './Stage';
 
 export interface GlobOptions {
     cwd?: string;
@@ -17,12 +18,13 @@ const writeFileAsync = promisify<Buffer>(fs.writeFile, fs);
 const readFileAsync = promisify<Buffer>(fs.readFile, fs);
 const statAsync = promisify<Stats>(fs.stat, fs);
 
-const globAsync = promisify<string[]>(require("glob"));
+const globAsync = promisify<string[]>(require('glob'));
 const mkdirpAsync = promisify(require('mkdirp'));
 
 export class CachedFS {
     // null - file doesn't exist
     private nodes = new Map<string, SourceFile>();
+    stage: Stage;
 
     watcher: fs.FSWatcher = this.plugin.watchMode ? chokidar.watch('') : null;
     private watchedFiles = new Set<SourceFile>();

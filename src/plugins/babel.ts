@@ -14,11 +14,11 @@ export function babel(globFiles?: Glob, options: TransformOptions = {}) {
         }
         const files = await plug.fs.findFiles(globFiles);
         files.forEach(file => {
-            plug.stage.addFile(file);
+            plug.fs.stage.addFile(file);
             plug.fs.watch(file);
         });
 
-        const jsFiles = plug.stage.list().filter(file => file.extName.match(/^(jsx?|es6?)$/));
+        const jsFiles = plug.fs.stage.list().filter(file => file.extName.match(/^(jsx?|es6?)$/));
         const updatedFiles = jsFiles.filter(file => file.updated);
         for (let i = 0; i < updatedFiles.length; i++) {
             const file = updatedFiles[i];
@@ -43,13 +43,13 @@ export function babel(globFiles?: Glob, options: TransformOptions = {}) {
 
             const jsName = file.dirName + file.getBasename(true) + '.js';
             const jsFile = plug.fs.createGeneratedFile(jsName, result.code, file);
-            plug.stage.addFile(jsFile);
+            plug.fs.stage.addFile(jsFile);
         }
 
         const nonUpdatedFiles = jsFiles.filter(file => !file.updated);
         for (let i = 0; i < nonUpdatedFiles.length; i++) {
             const file = nonUpdatedFiles[i];
-            file.createdFiles.forEach(f => plug.stage.addFile(f));
+            file.createdFiles.forEach(f => plug.fs.stage.addFile(f));
         }
     });
 }

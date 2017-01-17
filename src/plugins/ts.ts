@@ -130,12 +130,12 @@ export function ts(options: TS.CompilerOptions = {}) {
         }
 
         const configFile = plug.fs.findOrCreate(configFileName);
-        const tsFiles = plug.stage.list().filter(file => file.extName.match(/^[tj]sx?$/));
+        const tsFiles = plug.fs.stage.list().filter(file => file.extName.match(/^[tj]sx?$/));
         const changedTsFiles = tsFiles.filter(file => file.updated);
 
         // skip if no tsx?|js files changed
         if (tsFiles.length && changedTsFiles.length === 0) {
-            configFile.createdFiles.forEach(file => plug.stage.addFile(file));
+            configFile.createdFiles.forEach(file => plug.fs.stage.addFile(file));
             return;
         }
 
@@ -187,7 +187,7 @@ export function ts(options: TS.CompilerOptions = {}) {
                 // console.log('put', file);
                 const dist = plug.fs.createGeneratedFile(file, data, configFile);
                 cache.generatedFiles.push(dist);
-                plug.stage.addFile(dist);
+                plug.fs.stage.addFile(dist);
             };
         }
         const program = TS.createProgram(cache.configParseResult.fileNames, cache.compilerOptions, cache.compilerHost);

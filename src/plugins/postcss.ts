@@ -15,11 +15,11 @@ export function postcss(globFiles?: Glob, plugins: Postcss.Plugin<any>[] = [], o
 
         const files = await plug.fs.findFiles(globFiles);
         files.forEach(file => {
-            plug.stage.addFile(file);
+            plug.fs.stage.addFile(file);
             plug.fs.watch(file);
         });
 
-        const cssFiles = plug.stage.list().filter(file => file.extName == 'css');
+        const cssFiles = plug.fs.stage.list().filter(file => file.extName == 'css');
         for (let i = 0; i < cssFiles.length; i++) {
             const file = cssFiles[i];
             if (file.imports) {
@@ -45,7 +45,7 @@ export function postcss(globFiles?: Glob, plugins: Postcss.Plugin<any>[] = [], o
 
             const cssFile = plug.fs.createGeneratedFile(cssName, result.css, file);
             file.imports = [];
-            plug.stage.addFile(cssFile);
+            plug.fs.stage.addFile(cssFile);
 
             result.messages.forEach(message => logger.info(JSON.stringify(message)));
 
@@ -66,7 +66,7 @@ export function postcss(globFiles?: Glob, plugins: Postcss.Plugin<any>[] = [], o
         const nonUpdatedFiles = cssFiles.filter(file => !file.updated);
         for (let i = 0; i < nonUpdatedFiles.length; i++) {
             const file = nonUpdatedFiles[i];
-            file.createdFiles.forEach(f => plug.stage.addFile(f));
+            file.createdFiles.forEach(f => plug.fs.stage.addFile(f));
         }
     });
 }

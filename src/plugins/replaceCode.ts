@@ -7,7 +7,7 @@ export function replaceCode(replace: {[key: string]: string}) {
         const keys = Object.keys(replace);
         const replaceKeys = keys.map(key => new RegExp(key, 'g'));
         const values = keys.map(key => replace[key]);
-        const destJsFiles = plug.stage.list().filter(file => plug.inDestFolder(file) && file.extName == 'js');
+        const destJsFiles = plug.fs.stage.list().filter(file => plug.inDestFolder(file) && file.extName == 'js');
         for (let i = 0; i < destJsFiles.length; i++) {
             const file = destJsFiles[i];
             let content = await plug.fs.readContent(file);

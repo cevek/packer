@@ -68,7 +68,7 @@ export class JSScanner {
         }
         this.scanned.set(file, true);
         if (!file.updated) {
-            this.plug.stage.addFile(file);
+            this.plug.fs.stage.addFile(file);
             if (file.imports) {
                 for (let i = 0; i < file.imports.length; i++) {
                     const imprt = file.imports[i];
@@ -104,7 +104,7 @@ export class JSScanner {
             if (imprt.file.extName === 'js') {
                 await this.scan(imprt.file);
             } else {
-                this.plug.stage.addFile(imprt.file);
+                this.plug.fs.stage.addFile(imprt.file);
             }
         }
         file.imports = newImports;
