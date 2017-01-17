@@ -1,10 +1,10 @@
-import "../helpers";
-import {plugin, PackerResult} from "../packer";
-import {Plugin} from "../utils/Plugin";
-import {logger} from "../utils/logger";
-import {SourceFile} from "../utils/SourceFile";
-import {makeHash, makeHashBinary} from "../utils/makeHash";
-import {relative} from "path";
+import '../helpers';
+import {plugin, PackerResult} from '../packer';
+import {Plugin} from '../utils/Plugin';
+import {logger} from '../utils/logger';
+import {SourceFile} from '../utils/SourceFile';
+import {makeHash, makeHashBinary} from '../utils/makeHash';
+import {relative} from 'path';
 const ejs = require('ejs');
 
 import path = require('path');
@@ -81,25 +81,31 @@ export function html(options: HTMLOptions) {
     });
 }
 
+
 function preparePredefinedParams(params: HTMLReplaceParams, plug: Plugin, packerResult?: PackerResult) {
-    let cssFiles: string[];
-    let jsFiles: string[];
+    let cssFiles: SourceFile[] = [];
+    let jsFiles: SourceFile[] = [];
     if (packerResult) {
-        cssFiles = packerResult.emittedCSSFiles;
-        jsFiles = packerResult.emittedJSFiles;
+        for (let i = 0; i < packerResult.emittedFiles.length; i++) {
+            const file = packerResult.emittedFiles[i];
+            if (file.extName === 'js') {
+                jsFiles.push(file);
+            } else if (file.extName === 'css') {
+                cssFiles.push(file);
+            }
+        }
     } else {
         const stage = plug.fs.stage.list();
         cssFiles = [];
         jsFiles = [];
         for (let i = 0; i < stage.length; i++) {
             const file = stage[i];
-            if ((file.extName == 'js' || file.extName == 'css') && plug.inDestFolder(file)) {
-                const src = file.fullName;
-                if (file.extName == 'js') {
-                    jsFiles.push(src);
+            if ((file.extName === 'js' || file.extName === 'css') && plug.inDestFolder(file)) {
+                if (file.extName === 'js') {
+                    jsFiles.push(file);
                 }
                 else {
-                    cssFiles.push(src);
+                    cssFiles.push(file);
                 }
             }
         }
@@ -107,21 +113,36 @@ function preparePredefinedParams(params: HTMLReplaceParams, plug: Plugin, packer
 
     let js = '\n';
     for (let i = 0; i < jsFiles.length; i++) {
-        const filename = jsFiles[i];
+        const jsFile = jsFiles[i];
+        const filename = jsFile.fullName;
         const src = plug.options.publicPath + relative(plug.options.dest, filename);
-        js += `\t<script src="${src}"></script>\n`;
+        const attrs = jsFile.injectOptions && jsFile.injectOptions.script ? makeAttrs(jsFile.injectOptions.script.attrs) : '';
+        js += `\t<script src="${src}"${attrs}></script>\n`;
     }
 
     let css = '\n';
     for (let i = 0; i < cssFiles.length; i++) {
-        const filename = cssFiles[i];
+        const cssFile = cssFiles[i];
+        const filename = cssFile.fullName;
         const src = plug.options.publicPath + relative(plug.options.dest, filename);
-        css += `\t<link rel="stylesheet" href="${src}">\n`;
+        const attrs = cssFile.injectOptions && cssFile.injectOptions.link ? makeAttrs(cssFile.injectOptions.link.attrs) : '';
+        css += `\t<link rel="stylesheet" href="${src}"${attrs}>\n`;
     }
 
     params['js'] = js;
     params['css'] = css;
     return params;
+}
+
+function makeAttrs(attrs: {[attr: string]: string}) {
+    if (!attrs) {
+        return '';
+    }
+    let s = '';
+    for (const attr in attrs){
+        s += ` ${attr}="${attrs[attr]}"`;
+    }
+    return s;
 }
 
 export function renderHTML(filename: string, packerResult: PackerResult, overrideParams: HTMLReplaceParams) {
