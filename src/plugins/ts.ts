@@ -130,11 +130,12 @@ export function ts(options: TS.CompilerOptions = {}) {
         }
 
         const configFile = plug.fs.findOrCreate(configFileName);
-        const tsFiles = plug.fs.stage.list().filter(file => file.extName.match(/^[tj]sx?$/));
-        const changedTsFiles = tsFiles.filter(file => file.updated);
-
-        // skip if no tsx?|js files changed
-        if (tsFiles.length && changedTsFiles.length === 0) {
+        for (const file of configFile.createdFiles) {
+            if (file.updated) {
+                configFile.updated = true;
+            }
+        }
+        if (!configFile.updated) {
             configFile.createdFiles.forEach(file => plug.fs.stage.addFile(file));
             return;
         }
@@ -193,8 +194,12 @@ export function ts(options: TS.CompilerOptions = {}) {
         const program = TS.createProgram(cache.configParseResult.fileNames, cache.compilerOptions, cache.compilerHost);
         // First get and report any syntactic errors.
         let diagnostics = program.getSyntacticDiagnostics();
-        program.getSourceFiles().forEach(file =>
-            plug.fs.watch(plug.fs.findOrCreate(file.fileName)));
+        program.getSourceFiles().forEach(tsSFile => {
+            const file = plug.fs.findOrCreate(tsSFile.fileName);
+            configFile.createdFiles.add(file);
+            plug.fs.watch(file);
+            plug.fs.stage.addFile(file);
+        });
 
         // If we didn't have any syntactic errors, then also try getting the global and
         // semantic errors.
