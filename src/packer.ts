@@ -21,7 +21,7 @@ export interface PackerOptions {
     context: string;
     dest: string;
     sourceMap?: boolean;
-    alias?: {[module: string]: string};
+    alias?: { [module: string]: string };
     maxInlineSize?: number;
     publicPath?: string;
     skipNodeModulesWatch?: boolean;
@@ -77,15 +77,29 @@ export class Packer {
         this.options = defaultOptions;
     }
 
-    async run(options: {watch?: boolean, nodeEnv?: boolean} = {}) {
+    async run(options: { watch?: boolean, nodeEnv?: boolean } = {}) {
         this.plug = new Plugin(options.watch, this.options, options.nodeEnv);
         if (options.watch) {
-            await this.watchRunner([]);
+            this.plug.fs.watcher.on('change', this.listener);
+            await this.watchRunner(true);
         } else {
             await this.runOnce();
         }
         return this;
     }
+
+    private timer: any;
+    listener = (filename: string) => {
+        //hack
+        if (!path.isAbsolute(filename)) {
+            return;
+        }
+        this.changedFiles.add(filename);
+        clearTimeout(this.timer);
+        this.timer = setTimeout(() => {
+            const promise = this.watchRunner();
+        }, 10);
+    };
 
     private result: FastPromise<PackerResult>;
 
@@ -104,51 +118,48 @@ export class Packer {
         this.plug.destroy();
     }
 
-    private async watchRunner(changedFiles: string[]) {
+    private changedFiles = new Set<string>();
+    private watchRunnerInProgress = false;
+    private buildNumber = 0;
+
+    private async watchRunner(force = false) {
+        if (!force && (this.watchRunnerInProgress || this.changedFiles.size == 0)) return;
+        this.watchRunnerInProgress = true;
         try {
+            this.buildNumber++;
+            this.plug.reset();
+            // logger.clear();
+            await this.watchRunnerUpdateFiles();
             this.result = new FastPromise<PackerResult>();
             this.plug.performance.measureStart('overall');
-            logger.info(`Incremental build started...`);
+            logger.info(`-------------------------------------\nIncremental build #${this.buildNumber} started...`);
             await this.exec();
+            logger.info('exec next');
             const dur = this.plug.performance.measureEnd('overall');
             const allMeasures = this.plug.performance.getAllMeasures();
             for (let i = 0; i < allMeasures.length; i++) {
                 const m = allMeasures[i];
                 logger.info(`${padRight(m.name, 20)} ${padLeft(m.dur | 0, 6)}ms`);
             }
-            logger.info(`Incremental build done after ${dur | 0}ms\n`);
+            logger.info(`Incremental build done after ${dur | 0}ms\n-------------------------------------`);
             this.result.resolve(this.getCompilationResult());
         } catch (e) {
-            logger.error('Error: ' + (e instanceof Error ? e.message : e));
+            logger.error('Build #' + this.buildNumber + ' Error: ' + (e instanceof Error ? e.message : e));
         }
-        let timerRunned = false;
-        clearTimeout(this.timeout);
-        let listener = (filename: string) => {
-            //hack
-            if (!path.isAbsolute(filename)) {
-                return;
-            }
-            changedFiles.push(filename);
-            if (!timerRunned) {
-                timerRunned = true;
-                this.timeout = setTimeout(async () => {
-                    await this.watchRunnerUpdateFiles(changedFiles);
-                    await this.watchRunner(changedFiles);
-                    this.plug.fs.watcher.removeListener('change', listener);
-                }, 50);
-            }
-        };
-        this.plug.fs.watcher.on('change', listener);
+        this.watchRunnerInProgress = false;
+        await this.watchRunner();
     }
 
-    private async watchRunnerUpdateFiles(changedFiles: string[]) {
-        this.plug.reset();
-        logger.clear();
-        while (changedFiles.length) {
-            const filename = changedFiles.shift();
+    private async watchRunnerUpdateFiles() {
+        const files = [...this.changedFiles];
+        this.changedFiles.clear();
+        for (let i = 0; i < files.length; i++) {
+            const filename = files[i];
             const file = this.plug.fs.findOrCreate(filename);
             await this.plug.fs.readContent(file, true);
-            logger.info('Changed ' + this.plug.fs.relativeName(file));
+            if (file.updated) {
+                logger.info('Changed ' + this.plug.fs.relativeName(file));
+            }
         }
     }
 
@@ -169,6 +180,7 @@ export class Packer {
                 }
             }
         }
+        this.plug.fs.resetUpdatedFiles();
     }
 
     private getCompilationResult() {
@@ -182,23 +194,19 @@ export class Packer {
         };
         return result;
     }
-
-    private timeout: Timer;
 }
 
 export function plugin(name: string, fn: (plug: Plugin) => Promise<void>) {
     return (plug: Plugin) => {
-        return new FastPromise<Plugin>((resolve, reject) => {
-            plug.performance.measureStart(name);
-            fn(plug).then(() => {
-                plug.performance.measureEnd(name);
-                resolve(plug);
-            }, reject);
-        }) as Promise<Plugin>;
-    }
+        plug.performance.measureStart(name);
+        return (fn(plug) as FastPromise<void>).then<Plugin,{name: string, plug: Plugin}>(pluginFulfill, null, {name, plug});
+    };
 }
 
-
+function pluginFulfill(this: {name: string, plug: Plugin}) {
+    this.plug.performance.measureEnd(this.name);
+    return this.plug;
+}
 
 
 

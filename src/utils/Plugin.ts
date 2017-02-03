@@ -72,7 +72,6 @@ export class Plugin {
         this.performance = new PerformanceMeasurer();
         this.emittedFiles = new Set();
         this.changedFiles = new Set();
-        this.fs.resetUpdatedFiles();
     }
 
     destroy() {
