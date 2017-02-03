@@ -71,7 +71,7 @@ export function combineCSS(outfile: string, filterGlob: Glob = '**/*.css', optio
                         const destFile = await plug.fs.createGeneratedFromFile(destFileName, urlFile, cssFile);
                         plug.fs.stage.addFile(destFile);
                         destFile.nameCanBeHashed = false;
-                        newUrl = plug.options.publicPath + path.relative(outfile, destFileName).replace(/..\//g, '');
+                        newUrl = plug.options.publicPath + path.relative(outfile, destFileName).replace(/^..\//, '');
                     }
                     if (!cssFile.imports) {
                         cssFile.imports = [];
