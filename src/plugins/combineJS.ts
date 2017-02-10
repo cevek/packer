@@ -8,7 +8,15 @@ import {base64Url} from "../utils/base64Url";
 import {makeHash, makeHashBinary} from "../utils/makeHash";
 import * as path from "path";
 
-const superHeader = `
+const superFooter = `\n})(typeof window == 'object' ? window : process, typeof require != 'undefined' && require, typeof module != 'undefined' && module, typeof require != 'undefined' && require)`;
+
+export interface CombineJSOptions {
+    attrs?: {[attr: string]: string}
+}
+
+export function combineJS(entryFilename: string, outfile: string, options?: CombineJSOptions) {
+    return plugin('combineJS', async (plug: Plugin) => {
+        const superHeader = `
 
 (function (global, rootRequire, rootModule, rootRequire) { 
 var __packerCache = [];
@@ -19,6 +27,7 @@ function require(id) {
     m.executor(require, m, m.exports);
     return m.exports;
 }
+require.publicPath = "${plug.options.publicPath}";
 
 function __packer(mId, executor) {
     __packerCache[mId] = {id: mId, inited: false, exports: {}, executor: executor};
@@ -29,15 +38,6 @@ var process = {
     }    
 };
 `;
-
-const superFooter = `\n})(typeof window == 'object' ? window : process, typeof require != 'undefined' && require, typeof module != 'undefined' && module, typeof require != 'undefined' && require)`;
-
-export interface CombineJSOptions {
-    attrs?: {[attr: string]: string}
-}
-
-export function combineJS(entryFilename: string, outfile: string, options?: CombineJSOptions) {
-    return plugin('combineJS', async (plug: Plugin) => {
         // console.time('JSScanner');
         outfile = plug.normalizeDestName(outfile);
 
@@ -99,7 +99,7 @@ export function combineJS(entryFilename: string, outfile: string, options?: Comb
             const destFile = await plug.fs.createGeneratedFromFile(destFileName, file, file);
             destFile.nameCanBeHashed = false;
             plug.fs.stage.addFile(destFile);
-            return 'module.exports = "' + plug.options.publicPath + path.relative(outfile, destFileName).replace(/..\//g, '') + '"';
+            return 'module.exports = require.publicPath + "' + path.relative(outfile, destFileName).replace(/..\//g, '') + '"';
         }
 
         let localSuperFooter = '';

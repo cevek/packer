@@ -200,7 +200,7 @@ export class Packer {
 export function plugin(name: string, fn: (plug: Plugin) => Promise<void>) {
     return (plug: Plugin) => {
         plug.performance.measureStart(name);
-        return (fn(plug) as FastPromise<void>).then<Plugin,{name: string, plug: Plugin}>(pluginFulfill, null, {name, plug});
+        return (fn(plug) as FastPromise<void>).then<Plugin,{name: string, plug: Plugin}>(pluginFulfill, null, {name, plug}) as Promise<Plugin>;
     };
 }
 
