@@ -135,7 +135,6 @@ export class Packer {
             this.plug.performance.measureStart('overall');
             logger.info(`-------------------------------------\nIncremental build #${this.buildNumber} started...`);
             await this.exec();
-            logger.info('exec next');
             const dur = this.plug.performance.measureEnd('overall');
             const allMeasures = this.plug.performance.getAllMeasures();
             for (let i = 0; i < allMeasures.length; i++) {
