@@ -41,7 +41,7 @@ export async function resolve(x: string, baseDir: string, plug: Plugin) {
         const r = currentModuleRedirects.get(x);
         if (r) {
             x = r;
-            isLocalModule = true;
+            isLocalModule = localModuleRegexp.test(x);
         }
         else if (r === null) {
             return "%skip%";
@@ -108,12 +108,19 @@ async function loadMainFromPackageJson(module: string, plug: Plugin, cache: Cach
             }
             else if (typeof pkg.browser === 'object') {
                 for (const m in pkg.browser) {
-                    const val = pkg.browser[m];
-                    const key = localModuleRegexp.test(m) ? path.resolve(module, m) : m;
+                    let key = m;
+                    let val = pkg.browser[m];
+                    if (localModuleRegexp.test(key)) {
+                        key = path.resolve(module, key);
+                    }
+                    if (localModuleRegexp.test(val)) {
+                        val = path.resolve(module, val);
+                    }
+                    // console.log(m, key, val);
                     if (val === false) {
                         rm.set(key, null);
                     } else {
-                        rm.set(key, path.resolve(module, val));
+                        rm.set(key, val);
                     }
                 }
             }
