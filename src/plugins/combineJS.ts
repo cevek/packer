@@ -54,8 +54,8 @@ var process = {
         const numberHash = new Map<SourceFile, number>();
         let num = 0;
 
-        function numberImports(file: SourceFile) {
-            // await jsScanner.scan(file);
+        async function numberImports(file: SourceFile) {
+            await jsScanner.scan(file);
             if (numberHash.has(file)) {
                 return;
             }
@@ -63,7 +63,7 @@ var process = {
             if (file.imports) {
                 for (let i = 0; i < file.imports.length; i++) {
                     const imprt = file.imports[i];
-                    numberImports(imprt.file);
+                    await numberImports(imprt.file);
                 }
             }
         }
@@ -104,10 +104,10 @@ var process = {
 
         let localSuperFooter = '';
         for (let file of plug.jsEntries) {
-            numberImports(file);
+            await numberImports(file);
             localSuperFooter = `\nrequire(${numberHash.get(file)});`;
         }
-        numberImports(entryFile);
+        await numberImports(entryFile);
         localSuperFooter = `\nrootModule.exports = require(${numberHash.get(entryFile)});`;
         localSuperFooter += superFooter;
 
@@ -125,10 +125,6 @@ var process = {
         const hasUpdates = files.some(file => file.extName === 'js' && file.updated);
         let file: SourceFile;
         if (hasUpdates) {
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                await jsScanner.scan(file);
-            }
             file = await combiner({
                 type: 'js',
                 plug,
