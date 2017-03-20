@@ -1,6 +1,6 @@
 {
   "name": "webbuilder",
-  "version": "1.0.27",
+  "version": "1.0.28",
   "description": "",
   "main": "dist/packer.js",
   "typings": "dist/packer.d.ts",
@@ -22,6 +22,6 @@
     "node-sass": "^3.11.2",
     "postcss": "^5.2.6",
     "react-deep-force-update": "^2.0.1",
-    "typescript": "^2.0.6"
+    "typescript": "^2.3.0-dev.20170320"
   }
 }

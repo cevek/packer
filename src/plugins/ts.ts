@@ -113,7 +113,7 @@ function reportDiagnosticWithColorAndContext(plug: Plugin, diagnostic: TS.Diagno
 }
 
 //todo: if tsconfig.json is editing do not throw error
-export function ts(options: TS.CompilerOptions = {}) {
+export function ts(options: TS.CompilerOptions = {}, customTransformers?: TS.CustomTransformers) {
     return plugin('ts', async(plug: Plugin) => {
         //todo: use plug fs methods
         const cache = plug.getCache('ts') as Cache;
@@ -209,8 +209,9 @@ export function ts(options: TS.CompilerOptions = {}) {
                 diagnostics = program.getSemanticDiagnostics();
             }
         }
+
         // Otherwise, emit and report any errors we ran into.
-        const emitOutput = program.emit();
+        const emitOutput = program.emit(void 0, void 0, void 0, void 0, customTransformers);
         diagnostics = diagnostics.concat(emitOutput.diagnostics);
         if (diagnostics.length) {
             reportDiagnostics(plug, (TS as any).sortAndDeduplicateDiagnostics(diagnostics), cache.compilerHost);
