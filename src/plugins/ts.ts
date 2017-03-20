@@ -113,14 +113,18 @@ function reportDiagnosticWithColorAndContext(plug: Plugin, diagnostic: TS.Diagno
 }
 
 //todo: if tsconfig.json is editing do not throw error
-export function ts(options: TS.CompilerOptions = {}, customTransformers?: TS.CustomTransformers) {
+export function ts(options: TS.CompilerOptions = {}, customTransformers?: TS.CustomTransformers, transpileOnly?: boolean) {
     return plugin('ts', async(plug: Plugin) => {
         //todo: use plug fs methods
         const cache = plug.getCache('ts') as Cache;
 
+        options.module = TS.ModuleKind.CommonJS;
         options.outDir = void 0;//plug.options.dest;
         options.sourceMap = plug.options.sourceMap;
         options.inlineSourceMap = false;
+        if (transpileOnly) {
+            options.isolatedModules = true;
+        }
 
         cache.generatedFiles = [];
 
@@ -194,25 +198,32 @@ export function ts(options: TS.CompilerOptions = {}, customTransformers?: TS.Cus
         const program = TS.createProgram(cache.configParseResult.fileNames, cache.compilerOptions, cache.compilerHost);
         // First get and report any syntactic errors.
         let diagnostics = program.getSyntacticDiagnostics();
+        // If we didn't have any syntactic errors, then also try getting the global and
+        // semantic errors.
+        if (diagnostics.length === 0) {
+            diagnostics = program.getOptionsDiagnostics().concat(program.getGlobalDiagnostics());
+            if (diagnostics.length === 0 && !transpileOnly) {
+                diagnostics = program.getSemanticDiagnostics();
+            }
+        }
+
         program.getSourceFiles().forEach(tsSFile => {
             const file = plug.fs.findOrCreate(tsSFile.fileName);
             configFile.createdFiles.add(file);
             plug.fs.watch(file);
             plug.fs.stage.addFile(file);
+            if (transpileOnly && file.updated) {
+                // console.log('emit', file.fullName);
+                const emitOutput = program.emit(tsSFile, void 0, void 0, void 0, customTransformers);
+                diagnostics = diagnostics.concat(emitOutput.diagnostics);
+            }
         });
 
-        // If we didn't have any syntactic errors, then also try getting the global and
-        // semantic errors.
-        if (diagnostics.length === 0) {
-            diagnostics = program.getOptionsDiagnostics().concat(program.getGlobalDiagnostics());
-            if (diagnostics.length === 0) {
-                diagnostics = program.getSemanticDiagnostics();
-            }
-        }
-
         // Otherwise, emit and report any errors we ran into.
-        const emitOutput = program.emit(void 0, void 0, void 0, void 0, customTransformers);
-        diagnostics = diagnostics.concat(emitOutput.diagnostics);
+        if (!transpileOnly) {
+            const emitOutput = program.emit(void 0, void 0, void 0, void 0, customTransformers);
+            diagnostics = diagnostics.concat(emitOutput.diagnostics);
+        }
         if (diagnostics.length) {
             reportDiagnostics(plug, (TS as any).sortAndDeduplicateDiagnostics(diagnostics), cache.compilerHost);
         }
