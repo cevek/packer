@@ -18,6 +18,12 @@ export {replaceCode} from './plugins/replaceCode';
 export {src} from './plugins/src';
 export {cleanDist} from './plugins/cleanDist';
 
+export enum PackerLogLevels {
+    ALL = 1,
+    DEBUG = 2,
+    ERROR = 4,
+
+}
 export interface PackerOptions {
     context: string;
     dest: string;
@@ -26,6 +32,7 @@ export interface PackerOptions {
     maxInlineSize?: number;
     publicPath?: string;
     skipNodeModulesWatch?: boolean;
+    logLevel?: PackerLogLevels;
 }
 
 export interface PackerResult {
@@ -52,7 +59,8 @@ export class Packer {
             alias: null,
             maxInlineSize: 0,
             publicPath: '',
-            skipNodeModulesWatch: false
+            skipNodeModulesWatch: false,
+            logLevel: PackerLogLevels.ERROR
         };
         if (options.context) {
             defaultOptions.context = path.resolve(options.context);
@@ -73,6 +81,9 @@ export class Packer {
         }
         if (typeof options.skipNodeModulesWatch === 'boolean') {
             defaultOptions.skipNodeModulesWatch = options.skipNodeModulesWatch;
+        }
+        if (typeof options.logLevel === 'number') {
+            defaultOptions.logLevel = options.logLevel;
         }
         defaultOptions.alias = options.alias;
         this.options = defaultOptions;
@@ -144,7 +155,7 @@ export class Packer {
             logger.info(`Incremental build done after ${dur | 0}ms\n-------------------------------------`);
             this.result.resolve(this.getCompilationResult());
         } catch (e) {
-            logger.error('Build #' + this.buildNumber + ' Error: ' + (e instanceof Error ? e.message : e));
+            logger.error('Build #' + this.buildNumber + ' Error: ' + (e instanceof Error ? (this.options.logLevel === PackerLogLevels.DEBUG ? e.stack : e.message) : e));
         }
         this.watchRunnerInProgress = false;
         await this.watchRunner();
