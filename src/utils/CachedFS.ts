@@ -230,7 +230,7 @@ export class CachedFS {
     watch(file: SourceFile) {
         if (this.plugin.watchMode) {
             if (!this.plugin.options.skipNodeModulesWatch || !file.fullName.match(/\/node_modules\//)) {
-                this.watcher.add(file.fullName);
+                (this.watcher as any).add(file.fullName);
                 this.watchedFiles.add(file);
             }
         }

@@ -5,6 +5,7 @@ import {logger} from "../utils/logger";
 import {plugin} from "../packer";
 import {Plugin} from "../utils/Plugin";
 import {SourceFile} from "../utils/SourceFile";
+import { Glob } from "../utils/fs";
 
 interface Cache {
     program: TS.Program;
@@ -13,6 +14,12 @@ interface Cache {
     compilerOptions: TS.CompilerOptions;
     compilerHost: TS.CompilerHost;
     generatedFiles: SourceFile[]
+}
+
+export interface TSOptions {
+    compilerOptions?: TS.CompilerOptions;
+    customTransformers?: TS.CustomTransformers;
+    transpileOnly?: boolean;
 }
 
 
@@ -113,22 +120,25 @@ function reportDiagnosticWithColorAndContext(plug: Plugin, diagnostic: TS.Diagno
 }
 
 //todo: if tsconfig.json is editing do not throw error
-export function ts(options: TS.CompilerOptions = {}, customTransformers?: TS.CustomTransformers, transpileOnly?: boolean) {
+export function ts(entryFiles: Glob, options: TSOptions) {
     return plugin('ts', async(plug: Plugin) => {
+        const files = await plug.fs.findFiles(entryFiles);
+
         //todo: use plug fs methods
         const cache = plug.getCache('ts') as Cache;
+        const compilerOptions = options.compilerOptions || {};
 
-        options.module = TS.ModuleKind.CommonJS;
-        options.outDir = void 0;//plug.options.dest;
-        options.sourceMap = plug.options.sourceMap;
-        options.inlineSourceMap = false;
-        if (transpileOnly) {
-            options.isolatedModules = true;
+        compilerOptions.module = TS.ModuleKind.CommonJS;
+        compilerOptions.outDir = void 0;//plug.options.dest;
+        compilerOptions.sourceMap = plug.options.sourceMap;
+        compilerOptions.inlineSourceMap = false;
+        if (options.transpileOnly) {
+            compilerOptions.isolatedModules = true;
         }
 
         cache.generatedFiles = [];
 
-        const configFileName = (options && options.project) || TS.findConfigFile(plug.options.context, TS.sys.fileExists);
+        const configFileName = (compilerOptions && compilerOptions.project) || TS.findConfigFile(plug.options.context, TS.sys.fileExists);
         if (!configFileName) {
             throw new Error('tsconfig.json not found in ' + plug.options.context);
         }
@@ -154,7 +164,7 @@ export function ts(options: TS.CompilerOptions = {}, customTransformers?: TS.Cus
                 reportDiagnostics(plug, [result.error], /* compilerHost */ undefined);
                 throw new Error('Error in tsconfig.json');
             }
-            cache.configParseResult = TS.parseJsonConfigFileContent(configObject, TS.sys, path.dirname(configFile.fullName), options, configFile.fullName);
+            cache.configParseResult = TS.parseJsonConfigFileContent(configObject, TS.sys, path.dirname(configFile.fullName), compilerOptions, configFile.fullName);
             if (cache.configParseResult.errors.length > 0) {
                 reportDiagnostics(plug, cache.configParseResult.errors, /* compilerHost */ undefined);
                 throw new Error('Error in tsconfig.json');
@@ -170,7 +180,7 @@ export function ts(options: TS.CompilerOptions = {}, customTransformers?: TS.Cus
                 if (cache.program && file && !file.updated) {
                     const sourceFile = cache.program.getSourceFile(fileName);
                     // console.log('getSourceFile from program', sourceFile.fileName, sourceFile.path);
-                    if (sourceFile && sourceFile.path) {
+                    if (sourceFile) {
                         return sourceFile;
                     }
                 }
@@ -195,14 +205,14 @@ export function ts(options: TS.CompilerOptions = {}, customTransformers?: TS.Cus
                 plug.fs.stage.addFile(dist);
             };
         }
-        const program = TS.createProgram(cache.configParseResult.fileNames, cache.compilerOptions, cache.compilerHost);
+        const program = TS.createProgram(files.map(file => file.fullName), cache.compilerOptions, cache.compilerHost);
         // First get and report any syntactic errors.
         let diagnostics = program.getSyntacticDiagnostics();
         // If we didn't have any syntactic errors, then also try getting the global and
         // semantic errors.
         if (diagnostics.length === 0) {
             diagnostics = program.getOptionsDiagnostics().concat(program.getGlobalDiagnostics());
-            if (diagnostics.length === 0 && !transpileOnly) {
+            if (diagnostics.length === 0 && !options.transpileOnly) {
                 diagnostics = program.getSemanticDiagnostics();
             }
         }
@@ -212,16 +222,16 @@ export function ts(options: TS.CompilerOptions = {}, customTransformers?: TS.Cus
             configFile.createdFiles.add(file);
             plug.fs.watch(file);
             plug.fs.stage.addFile(file);
-            if (transpileOnly && file.updated) {
+            if (options.transpileOnly && file.updated) {
                 // console.log('emit', file.fullName);
-                const emitOutput = program.emit(tsSFile, void 0, void 0, void 0, customTransformers);
+                const emitOutput = program.emit(tsSFile, void 0, void 0, void 0, options.customTransformers);
                 diagnostics = diagnostics.concat(emitOutput.diagnostics);
             }
         });
 
         // Otherwise, emit and report any errors we ran into.
-        if (!transpileOnly) {
-            const emitOutput = program.emit(void 0, void 0, void 0, void 0, customTransformers);
+        if (!options.transpileOnly) {
+            const emitOutput = program.emit(void 0, void 0, void 0, void 0, options.customTransformers);
             diagnostics = diagnostics.concat(emitOutput.diagnostics);
         }
         if (diagnostics.length) {

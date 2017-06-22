@@ -175,7 +175,7 @@ export class Packer {
     }
 
     private async exec() {
-        await this.executor(FastPromise.resolve(this.plug));
+        await this.executor(FastPromise.resolve(this.plug as any));
         const files = this.plug.fs.stage.list();
         // plug.printAllGeneratedFiles()
         // plug.printStageFiles();
