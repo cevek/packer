@@ -1,4 +1,3 @@
-import '../helpers';
 import * as TS from "typescript";
 import * as path from "path";
 import {logger} from "../utils/logger";
@@ -170,7 +169,7 @@ export function ts(options: TS.CompilerOptions = {}, customTransformers?: TS.Cus
                 if (cache.program && file && !file.updated) {
                     const sourceFile = cache.program.getSourceFile(fileName);
                     // console.log('getSourceFile from program', sourceFile.fileName, sourceFile.path);
-                    if (sourceFile && sourceFile.path) {
+                    if (sourceFile) {
                         return sourceFile;
                     }
                 }

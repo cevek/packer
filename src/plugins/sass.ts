@@ -1,4 +1,3 @@
-import "../helpers";
 import {promisify} from "../utils/promisify";
 import {Glob} from "../utils/fs";
 import {plugin} from "../packer";

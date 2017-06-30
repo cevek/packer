@@ -1,7 +1,6 @@
-import FastPromise from "fast-promise";
 export function promisify<T>(func: (...args: any[])=>void, context?: any) {
     const fn = function (...args: any[]) {
-        return new FastPromise<T>((resolve, reject) => {
+        return new Promise<T>((resolve, reject) => {
             args.push((err: any, data: T) => {
                 if (err) return reject(err);
                 return resolve(data);
