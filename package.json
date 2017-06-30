@@ -11,7 +11,8 @@
     "chokidar": "^1.6.1",
     "glob": "^7.1.1",
     "mime-db": "^1.25.0",
-    "mkdirp": "^0.5.1"
+    "mkdirp": "^0.5.1",
+    "typescript": "^2.5.0-dev.20170629"
   },
   "devDependencies": {
     "@types/babel-core": "^6.7.14",
