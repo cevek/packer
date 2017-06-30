@@ -1,4 +1,3 @@
-import '../helpers';
 import {plugin, PackerResult} from '../packer';
 import {Plugin} from '../utils/Plugin';
 import {logger} from '../utils/logger';

@@ -1,29 +1,39 @@
 import './helpers';
-import {logger} from './utils/logger';
-import {padRight, padLeft, formatBytes} from './utils/common';
-import {Plugin} from './utils/Plugin';
+import { logger } from './utils/logger';
+import { padRight, padLeft, formatBytes } from './utils/common';
+import { Plugin } from './utils/Plugin';
 import * as path from 'path';
-import FastPromise from 'fast-promise';
 import chokidar = require('chokidar');
 import Timer = NodeJS.Timer;
-import {SourceFile} from './utils/SourceFile';
+import { SourceFile } from './utils/SourceFile';
 export * from './utils/Plugin';
 
-export {combineJS} from './plugins/combineJS';
-export {combineCSS} from './plugins/combineCSS';
-export {copy} from './plugins/copy';
-export {hash} from './plugins/hash';
-export {conditional} from './utils/conditional';
-export {replaceCode} from './plugins/replaceCode';
-export {src} from './plugins/src';
-export {cleanDist} from './plugins/cleanDist';
+export { combineJS } from './plugins/combineJS';
+export { combineCSS } from './plugins/combineCSS';
+export { copy } from './plugins/copy';
+export { hash } from './plugins/hash';
+export { conditional } from './utils/conditional';
+export { replaceCode } from './plugins/replaceCode';
+export { src } from './plugins/src';
+export { cleanDist } from './plugins/cleanDist';
+
+
+class P<T> {
+    resolve: (val: T) => void;
+    reject: (err: Error) => void;
+    promise = new Promise<T>((resolve, reject) => {
+        this.resolve = resolve;
+        this.reject = reject;
+    });
+}
 
 export enum PackerLogLevels {
     ALL = 1,
     DEBUG = 2,
     ERROR = 4,
-
+    
 }
+
 export interface PackerOptions {
     context: string;
     dest: string;
@@ -113,20 +123,21 @@ export class Packer {
         }, 10);
     };
 
-    private result: FastPromise<PackerResult>;
+    private result: Promise<PackerResult>;
 
     getResult() {
         return this.result;
     }
 
     private async runOnce() {
-        this.result = new FastPromise<PackerResult>();
+        var p = new P<PackerResult>();
+        this.result = p.promise;
         this.plug.performance.measureStart('overall');
         logger.info(`Build started...`);
         await this.exec();
         const dur = this.plug.performance.measureEnd('overall');
         logger.info(`Build done after ${dur | 0}ms`);
-        this.result.resolve(this.getCompilationResult());
+        p.resolve(this.getCompilationResult());
         this.plug.destroy();
     }
 
@@ -142,7 +153,8 @@ export class Packer {
             this.plug.reset();
             // logger.clear();
             await this.watchRunnerUpdateFiles();
-            this.result = new FastPromise<PackerResult>();
+            var p = new P<PackerResult>();
+            this.result = p.promise;
             this.plug.performance.measureStart('overall');
             logger.info(`-------------------------------------\nIncremental build #${this.buildNumber} started...`);
             await this.exec();
@@ -153,7 +165,7 @@ export class Packer {
                 logger.info(`${padRight(m.name, 20)} ${padLeft(m.dur | 0, 6)}ms`);
             }
             logger.info(`Incremental build done after ${dur | 0}ms\n-------------------------------------`);
-            this.result.resolve(this.getCompilationResult());
+            p.resolve(this.getCompilationResult());
         } catch (e) {
             logger.error('Build #' + this.buildNumber + ' Error: ' + (e instanceof Error ? (this.options.logLevel === PackerLogLevels.DEBUG ? e.stack : e.message) : e));
         }
@@ -175,7 +187,7 @@ export class Packer {
     }
 
     private async exec() {
-        await this.executor(FastPromise.resolve(this.plug as any));
+        await this.executor(Promise.resolve(this.plug as any));
         const files = this.plug.fs.stage.list();
         // plug.printAllGeneratedFiles()
         // plug.printStageFiles();
@@ -210,14 +222,13 @@ export class Packer {
 export function plugin(name: string, fn: (plug: Plugin) => Promise<void>) {
     return (plug: Plugin) => {
         plug.performance.measureStart(name);
-        return (fn(plug) as FastPromise<void>).then<Plugin,{name: string, plug: Plugin}>(pluginFulfill, null, {name, plug}) as Promise<Plugin>;
+        return fn(plug).then(() => {
+            plug.performance.measureEnd(name);
+            return plug;
+        });
     };
 }
 
-function pluginFulfill(this: {name: string, plug: Plugin}) {
-    this.plug.performance.measureEnd(this.name);
-    return this.plug;
-}
 
 
 

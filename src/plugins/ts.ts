@@ -1,4 +1,3 @@
-import '../helpers';
 import * as TS from "typescript";
 import * as path from "path";
 import {logger} from "../utils/logger";

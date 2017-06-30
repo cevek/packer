@@ -9,7 +9,6 @@
   "license": "ISC",
   "dependencies": {
     "chokidar": "^1.6.1",
-    "fast-promise": "^1.0.9",
     "glob": "^7.1.1",
     "mime-db": "^1.25.0",
     "mkdirp": "^0.5.1"

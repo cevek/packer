@@ -1,6 +1,5 @@
 import {promisify} from './promisify';
 import * as fs from 'fs';
-import FastPromise from "fast-promise";
 
 export interface GlobOptions {
     cwd?: string;
@@ -22,7 +21,7 @@ export const glob: (glob: Glob, options: GlobOptions) => Promise<string[]> = pro
 export const mkdirp: (dirname: string) => Promise<string[]> = promisify(require('mkdirp'));
 
 export function fileExists(filename: string) {
-    return new FastPromise<boolean>(resolve => {
+    return new Promise<boolean>(resolve => {
         fs.access(filename, (fs as any).F_OK, err => resolve(!err));
     });
 }
