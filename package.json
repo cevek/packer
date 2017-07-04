@@ -1,12 +1,15 @@
 {
   "name": "webbuilder",
-  "version": "1.0.28",
+  "version": "1.0.29",
   "description": "",
   "main": "dist/packer.js",
   "typings": "dist/packer.d.ts",
   "keywords": [],
   "author": "cevek",
   "license": "ISC",
+  "files": [
+    "dist/*"
+  ],
   "dependencies": {
     "chokidar": "^1.6.1",
     "fast-promise": "^1.0.9",
