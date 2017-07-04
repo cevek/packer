@@ -1,4 +1,3 @@
-import './helpers';
 import { logger } from './utils/logger';
 import { padRight, padLeft, formatBytes } from './utils/common';
 import { Plugin } from './utils/Plugin';
