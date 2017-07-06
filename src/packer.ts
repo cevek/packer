@@ -166,7 +166,8 @@ export class Packer {
             logger.info(`Incremental build done after ${dur | 0}ms\n-------------------------------------`);
             p.resolve(this.getCompilationResult());
         } catch (e) {
-            logger.error('Build #' + this.buildNumber + ' Error: ' + (e instanceof Error ? (this.options.logLevel === PackerLogLevels.DEBUG ? e.stack : e.message) : e));
+            // logger.error('Build #' + this.buildNumber + ' Error: ' + (e instanceof Error ? (this.options.logLevel === PackerLogLevels.DEBUG ? e.stack : e.message) : e));
+            logger.error('Build #' + this.buildNumber + ' Error: ' + (e instanceof Error ? (e.stack) : e));
         }
         this.watchRunnerInProgress = false;
         await this.watchRunner();

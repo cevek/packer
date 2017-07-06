@@ -202,7 +202,10 @@ export class CachedFS {
         const files = new Set<SourceFile>();
         for (let i = 0; i < result.length; i++) {
             const filename = result[i];
-            files.add(await this.readStats(this.normalizeName(filename)));
+            const file = await this.readStats(this.normalizeName(filename));
+            if (!file.isDir) {
+                files.add(file);
+            }
         }
         const list = this.stage.list();
         for (let i = 0; i < list.length; i++) {
