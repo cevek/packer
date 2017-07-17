@@ -51,12 +51,12 @@ export function combineCSS(outfile: string, filterGlob: Glob = '**/*.css', optio
                 if (/^https?:/i.test(url) || /^data:/.test(url)) {
                     continue;
                 }
-                const abcUrl = plug.normalizeName(path.isAbsolute(url) ? url : path.resolve(cssFile.dirName, url));
-
+                const abcUrl = plug.normalizeName(path.isAbsolute(url) ? plug.options.dest + url : path.resolve(cssFile.dirName, url));
+                
                 const urlFile = await plug.fs.tryFile(abcUrl);
                 if (!urlFile) {
                     //todo:
-                    logger.warning(`Cannot find url(${url}) in ${outfile}`);
+                    logger.warning(`Cannot find url(${abcUrl}) in ${outfile}`);
                     continue;
                 }
                 let newUrl = cache.urlData.get(urlFile);
