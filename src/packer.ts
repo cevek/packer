@@ -101,7 +101,8 @@ export class Packer {
     async run(options: { watch?: boolean, nodeEnv?: boolean } = {}) {
         this.plug = new Plugin(options.watch, this.options, options.nodeEnv);
         if (options.watch) {
-            this.plug.fs.watcher.on('change', this.listener);
+            this.plug.fs.watcher.on('raw', (event: string, file: string) => this.listener(file));
+            this.plug.fs.watcher.on('change', (file: string) => this.listener(file));
             await this.watchRunner(true);
         } else {
             await this.runOnce();
@@ -115,6 +116,8 @@ export class Packer {
         if (!path.isAbsolute(filename)) {
             return;
         }
+        var watchedFileNames = this.plug.fs.watchedFileNames;
+        if (!watchedFileNames.has(filename)) return;
         this.changedFiles.add(filename);
         clearTimeout(this.timer);
         this.timer = setTimeout(() => {

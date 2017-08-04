@@ -30,6 +30,7 @@ export class CachedFS {
 
     watcher: fs.FSWatcher = this.plugin.watchMode ? chokidar.watch('') : null;
     private watchedFiles = new Set<SourceFile>();
+    watchedFileNames = new Set<string>();
 
     useSyncMethods = true;
 
@@ -235,6 +236,7 @@ export class CachedFS {
             if (!this.plugin.options.skipNodeModulesWatch || !file.fullName.match(/\/node_modules\//)) {
                 (this.watcher as any).add(file.fullName);
                 this.watchedFiles.add(file);
+                this.watchedFileNames.add(file.fullName);
             }
         }
     }
