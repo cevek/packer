@@ -83,6 +83,7 @@ export class CachedFS {
     }
 
     findOrCreate(filename: string, isDir = false) {
+        filename = this.normalizeName(filename);
         let file = this.getFromCache(filename);
         if (!file) {
             file = new SourceFile(filename, isDir);
