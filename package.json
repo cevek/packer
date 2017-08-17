@@ -1,6 +1,6 @@
 {
   "name": "webbuilder",
-  "version": "1.0.34",
+  "version": "1.0.35",
   "description": "",
   "main": "dist/packer.js",
   "typings": "dist/packer.d.ts",
@@ -14,8 +14,7 @@
     "chokidar": "^1.6.1",
     "glob": "^7.1.1",
     "mime-db": "^1.25.0",
-    "mkdirp": "^0.5.1",
-    "typescript": "^2.5.0-dev.20170629"
+    "mkdirp": "^0.5.1"
   },
   "devDependencies": {
     "@types/babel-core": "^6.7.14",
@@ -26,6 +25,6 @@
     "node-sass": "^3.11.2",
     "postcss": "^5.2.6",
     "react-deep-force-update": "^2.0.1",
-    "typescript": "^2.3.0-dev.20170328"
+    "typescript": "^2.6.0"
   }
 }
