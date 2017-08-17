@@ -63,8 +63,12 @@ export async function combiner(params: CombinerOptions) {
                 for (let j = 0; j < realSources.length; j++) {
                     const filename = realSources[j];
                     const file = plug.fs.findOrCreate(filename);
-                    const originContent = await plug.fs.readContent(file);
-                    sourceMap.sourcesContent.push(originContent);
+                    try {
+                        const originContent = await plug.fs.readContent(file);
+                        sourceMap.sourcesContent.push(originContent);
+                    } catch (e) {
+
+                    }
                 }
                 smw.putExistSourceMap(content, sourceMap);
                 if (sourceMapFile && sourceMapFile.isGenerated) {
