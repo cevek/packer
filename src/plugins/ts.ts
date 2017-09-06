@@ -240,6 +240,6 @@ export function ts(entryFiles: Glob, options: TSOptions) {
             const file = cache.generatedFiles[i];
             await plug.jsScanner.scan(file);
         }
-        cache.program = program;
+        // cache.program = program;
     });
 }
